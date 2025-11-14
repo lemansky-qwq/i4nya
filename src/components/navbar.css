@@ -1,0 +1,105 @@
+/* Navbar 样式 */
+.navbar {
+  background-color: #111;
+  color: white;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #333;
+}
+
+.navbar a {
+  color: white;
+  margin-right: 1rem;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.navbar a:hover {
+  color: #0af;
+}
+
+.navbar button {
+  background: none;
+  border: 1px solid #aaa;
+  color: white;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  margin-left: 1rem;
+}
+
+.navbar button:hover {
+  border-color: #0af;
+  color: #0af;
+}
+
+.navbar-left,
+.navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+/* 主题切换按钮 */
+.theme-toggle-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #007bff;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.theme-toggle-button:hover {
+  background-color: #0056b3;
+}
+
+/* 右侧切换栏 */
+.theme-sidebar {
+  position: fixed;
+  top: 50%;
+  right: -210px; /* 初始位置，隐藏在右侧 */
+  background-color: #333;
+  width: 200px;
+  padding: 20px;
+  border-radius: 10px 0 0 10px;
+  box-shadow: -4px 4px 10px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease-in-out;
+}
+
+.theme-sidebar.open {
+  right: 0; /* 当展开时，改变位置 */
+}
+
+button {
+  margin: 5px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  background-color: #4CAF50;
+  color: white;
+  transition: background-color 0.3s;
+  -webkit-touch-callout: none; /* iOS Safari 禁止长按菜单 */
+  -webkit-tap-highlight-color: transparent; /* 去掉点击闪光 */
+}
+
+
+button:hover {
+  background-color: #45a049;
+}
+
+
+
+button, .no-select {
+  -webkit-user-select: none; /* Chrome/Safari/旧版Android */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE/Edge */
+  user-select: none;         /* 标准语法 */
+}
+

@@ -1,0 +1,119 @@
+.game-container {
+  text-align: center;
+  font-family: sans-serif;
+  margin-top: 40px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 70px);
+  grid-gap: 10px;
+  background: #bbada0;
+  padding: 10px;
+  border-radius: 10px;
+  margin: 0 auto;
+}
+
+.cell {
+  width: 70px;
+  height: 70px;
+  background: #cdc1b4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+  border-radius: 5px;
+  color: #776e65;
+  transition: all 0.1s ease-in-out;
+}
+
+.value-0 {
+  background: #ccc0b3;
+  color: transparent;
+}
+.value-2 {
+  background: #eee4da;
+}
+.value-4 {
+  background: #ede0c8;
+}
+.value-8 {
+  background: #f2b179;
+  color: #fff;
+}
+.value-16 {
+  background: #f59563;
+  color: #fff;
+}
+.value-32 {
+  background: #f67c5f;
+  color: #fff;
+}
+.value-64 {
+  background: #f65e3b;
+  color: #fff;
+}
+.value-128 {
+  background: #edcf72;
+  color: #fff;
+}
+.value-256 {
+  background: #edcc61;
+  color: #fff;
+}
+.value-512 {
+  background: #edc850;
+  color: #fff;
+}
+.value-1024 {
+  background: #edc53f;
+  color: #fff;
+}
+.value-2048 {
+  background: #edc22e;
+  color: #fff;
+}
+
+/* 禁止选中按钮文字 */
+button {
+  user-select: none;
+}
+
+/* 操作按钮容器 */
+.buttons-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* 行内的左、右按钮 */
+.row-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/* 每个按钮的样式 */
+.move-button {
+  background-color: #f4b400;
+  border: none;
+  border-radius: 5px;
+  width: 60px;
+  height: 60px;
+  font-size: 24px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.move-button:hover {
+  background-color: #f49d00;
+}
+
+.move-button:active {
+  background-color: #f48100;
+}
+

@@ -1,0 +1,48 @@
+.about-page {
+  padding: 2em;
+  line-height: 1.8;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.links-list {
+  list-style: none;
+  padding: 0;
+}
+
+.links-list li {
+  margin: 0.5em 0;
+  display: flex;
+  align-items: center;
+}
+
+.links-list .icon {
+  margin-right: 0.5em;
+  color: #444;
+  font-size: 1.2em;
+}
+
+.links-list a {
+  color: #0077cc;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.links-list a:hover {
+  text-decoration: underline;
+  color: #005fa3;
+}
+
+footer.footer {
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 2em;
+  text-align: center;
+}
+
+.icon {
+  vertical-align: middle;
+  margin-right: 0.5em;
+  color: inherit;
+  transition: color 0.3s ease;
+}
