@@ -1,5 +1,9 @@
+// src/app.jsx
 import { Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';  // 新增
+import { auth } from './lib/firebase';              // 新增
+
 import Home from './pages/home';
 import About from './pages/about';
 import Games from './pages/games/games';
@@ -12,8 +16,8 @@ import Login from './pages/login';
 import Register from './pages/register';
 import Profile from './pages/profile';
 import Leaderboard from './pages/games/score';
-import { supabase } from './lib/supabaseClient';  // 你自己的 supabase 客户端路径
-import './components/theme.css'; // 确保样式生效
+
+import './components/theme.css';
 
 const themes = ['light', 'dark', 'spring', 'summer', 'autumn', 'winter', 'nightmare', 'auto'];
 
@@ -36,20 +40,12 @@ export default function App() {
     applyTheme(theme);
   }, [theme]);
 
+  // Firebase 监听登录状态（完全替代 Supabase）
   useEffect(() => {
-    // 初始化用户状态
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
     });
-
-    // 监听登录状态变化
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      listener?.subscription?.unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   const handleChangeTheme = (selectedTheme) => {
@@ -70,7 +66,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="*" element={<NotFound />} />
-          <Route path="/profile/:uid" element={<Profile />} />
+          <Route path="/profile/:id" element={<Profile />} />
           <Route path="/games/score" element={<Leaderboard />} />
         </Routes>
       </div>

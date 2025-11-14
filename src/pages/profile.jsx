@@ -1,97 +1,56 @@
-import { useEffect, useState } from 'react';
+// src/pages/profile.jsx
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
+import { getProfileById } from '../lib/pu';
 
 export default function Profile() {
-  const { uid } = useParams();
+  const params = useParams();
+  console.log('useParams() 返回:', params); // 必须打印！
+
+  const { id } = params;
+  console.log('当前 URL 中的 id:', id);
   const [profile, setProfile] = useState(null);
-  const [notFound, setNotFound] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [bio, setBio] = useState('');
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
+    console.log('当前 URL 中的 id:', id); // 必须打印！
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', uid)
-        .single();
+    const fetch = async () => {
+      // 必须判断 id 是否有效
+      if (!id || id === 'null' || id === 'undefined') {
+        setError('ID 无效');
+        setLoading(false);
+        return;
+      }
 
-      if (error || !data) {
-        setNotFound(true);
-      } else {
-        setProfile(data);
-        setBio(data.bio || '');
+      try {
+        const data = await getProfileById(id);
+        console.log('数据库返回:', data); // 必须打印！
+        if (data) {
+          setProfile(data);
+        } else {
+          setError('用户不存在');
+        }
+      } catch (e) {
+        setError('加载出错');
+        console.error(e);
+      } finally {
+        setLoading(false); // 必须执行！
       }
     };
 
-    fetchData();
-  }, [uid]);
+    fetch();
+  }, [id]);
 
-  const handleSave = async () => {
-    setSaving(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ bio })
-      .eq('id', uid);
-
-    setSaving(false);
-
-    if (!error) {
-      setEditing(false);
-    } else {
-      alert('更新失败：' + error.message);
-    }
-  };
-
-  if (notFound) return <p>用户不存在</p>;
-  if (!profile) return <p>加载中...</p>;
-
-  const isOwner = currentUser?.id === profile.user_uuid;
+  if (loading) return <p>加载中…</p>;
+  if (error) return <p style={{ color: 'red' }}>{error}</p>;
 
   return (
-    <div style={{ padding: '1rem' }}>
-      <h1>用户资料</h1>
-      <p>UID: {profile.id}</p>
-      <p>昵称: {profile.nickname || '（未设置）'}</p>
-      <p>邮箱: {profile.email || '（未公开）'}</p>
-
-      <div>
-        <h3>个性签名</h3>
-        {isOwner ? (
-          <>
-            {editing ? (
-              <>
-                <textarea
-                  rows="3"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  style={{ width: '100%' }}
-                />
-                <br />
-                <button onClick={handleSave} disabled={saving}>
-                  {saving ? '保存中…' : '保存'}
-                </button>
-                <button onClick={() => setEditing(false)} style={{ marginLeft: '0.5rem' }}>
-                  取消
-                </button>
-              </>
-            ) : (
-              <>
-                <p>{bio || '（点击下方编辑）'}</p>
-                <button onClick={() => setEditing(true)}>编辑签名</button>
-              </>
-            )}
-          </>
-        ) : (
-          <p>{profile.bio || '这个人很懒，什么都没写'}</p>
-        )}
-      </div>
+    <div style={{ maxWidth: 600, margin: '2rem auto', textAlign: 'center' }}>
+      <h1>{profile.nickname}</h1>
+      <p><strong>ID:</strong> {profile.id}</p>
+      <p><strong>简介:</strong> {profile.bio || '暂无简介'}</p>
     </div>
   );
 }

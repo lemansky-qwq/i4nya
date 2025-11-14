@@ -1,273 +1,133 @@
+// src/pages/games/jump.jsx
 import { useEffect, useRef, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '../../lib/firebase';
+import { save } from '../../lib/gs';
+
+
 
 export default function JumpGame() {
-    const canvasRef = useRef(null);
-    const [player, setPlayer] = useState({ x: 0, y: 250 });
-    const [platforms, setPlatforms] = useState([
-        { x: 0, width: 80 },
-        { x: 100, width: 80 },
-    ]);
-    const [score, setScore] = useState(0);
-    const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem('jumpHighScore') || '0'));
-    const [gameOver, setGameOver] = useState(false);
-    const [charging, setCharging] = useState(false);
-    const [chargeStart, setChargeStart] = useState(0);
-    const [isJumping, setIsJumping] = useState(false);
-    const [user, setUser] = useState(null);
-    const [message, setMessage] = useState('');
-    const [leaderboard, setLeaderboard] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+  const canvasRef = useRef(null);
+  const [player, setPlayer] = useState({ x: 0, y: 250 });
+  const [platforms, setPlatforms] = useState([{ x: 0, width: 80 }, { x: 100, width: 80 }]);
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem('jumpHighScore') || '0'));
+  const [gameOver, setGameOver] = useState(false);
+  const [charging, setCharging] = useState(false);
+  const [chargeStart, setChargeStart] = useState(0);
+  const [isJumping, setIsJumping] = useState(false);
+  const [user, setUser] = useState(null);
+  const [msg, setMsg] = useState('');
+  const [load, setLoad] = useState(false);
 
-    // User authentication
-    useEffect(() => {
-        const getUser = async () => {
-            const { data } = await supabase.auth.getUser();
-            setUser(data.user);
-        };
-        getUser();
+  useEffect(() => auth.onAuthStateChanged(setUser), []);
 
-        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-        });
+  // 绘制
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    canvas.width = 600; canvas.height = 300;
 
-        return () => {
-            authListener.subscription.unsubscribe();
-        };
-    }, []);
+    const draw = () => {
+      ctx.clearRect(0, 0, 600, 300);
+      const offset = Math.max(0, player.x - 150);
 
-    // Fetch leaderboard
-    useEffect(() => {
-        const fetchLeaderboard = async () => {
-            setLoading(true);
-            setError(null);
+      ctx.fillStyle = '#eee'; ctx.fillRect(0, 280, 600, 20);
+      ctx.fillStyle = '#888';
+      platforms.forEach((p, i) => {
+        ctx.fillStyle = i === platforms.length - 1 ? '#555' : '#888';
+        ctx.fillRect(p.x - offset, 260, p.width, 20);
+      });
 
-            try {
-                // 确保使用正确的排序方式（descending）
-                const { data, error } = await supabase
-                    .from('gamescores')
-                    .select('jump, profiles(nickname)')
-                    .not('jump', 'is', null)  // 确保只获取有jump分数的记录
-                    .order('jump', { ascending: false })  // 明确降序排列
-                    .limit(10);
-
-                if (error) throw error;
-
-                // 确保数据正确排序后再设置state
-                const sortedData = data.sort((a, b) => b.jump - a.jump);
-                setLeaderboard(sortedData);
-            } catch (err) {
-                setError('获取排行榜失败：' + err.message);
-                console.error('获取排行榜错误:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchLeaderboard();
-    }, []);
-
-    // 修改后的saveScore函数
-    const saveScore = async () => {
-        if (!user) {
-            setMessage('请先登录');
-            return;
-        }
-
-        try {
-            // 首先检查用户是否存在记录
-            const { data: existing, error: fetchError } = await supabase
-                .from('gamescores')
-                .select('jump')
-                .eq('user_uuid', user.id)
-                .single();
-
-            // 移除了updated_at字段
-            let upsertData = {
-                user_uuid: user.id,
-                jump: score
-            };
-
-            // 如果已有记录且新分数更高，或者没有记录
-            if (!existing || (existing && score > existing.jump)) {
-                const { error: upsertError } = await supabase
-                    .from('gamescores')
-                    .upsert(upsertData, { onConflict: 'user_uuid' });
-
-                if (upsertError) throw upsertError;
-
-                setMessage(existing ? '新纪录，分数已更新' : '首次提交，分数已保存');
-                
-                // 刷新排行榜
-                const { data: newLeaderboard } = await supabase
-                    .from('gamescores')
-                    .select('jump, profiles(nickname)')
-                    .not('jump', 'is', null)
-                    .order('jump', { ascending: false })
-                    .limit(10);
-                
-                setLeaderboard(newLeaderboard);
-            } else {
-                setMessage(`未超过历史最高分：${existing.jump}，未更新`);
-            }
-        } catch (error) {
-            console.error('保存分数错误:', error);
-            setMessage('操作失败: ' + error.message);
-        }
+      ctx.fillStyle = gameOver ? 'red' : '#007bff';
+      ctx.fillRect(player.x - offset, player.y, 20, 20);
     };
+    draw();
+  }, [player, platforms, gameOver]);
 
-    // Game drawing
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        canvas.width = 600;
-        canvas.height = 300;
+  const animateJump = (power) => {
+    setIsJumping(true);
+    const dist = Math.min(200, power * 2);
+    const height = Math.min(100, power * 1.5);
+    let frame = 0;
+    const total = 30;
+    const startX = player.x, startY = player.y;
 
-        const draw = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const viewOffset = Math.max(0, player.x - 150);
-
-            ctx.fillStyle = '#eee';
-            ctx.fillRect(0, 280, canvas.width, 20);
-
-            ctx.fillStyle = '#888';
-            platforms.forEach((p, i) => {
-                ctx.fillStyle = (i === platforms.length - 1) ? '#555' : '#888';
-                ctx.fillRect(p.x - viewOffset, 260, p.width, 20);
-            });
-
-            ctx.fillStyle = gameOver ? 'red' : '#007bff';
-            ctx.fillRect(player.x - viewOffset, player.y, 20, 20);
-        };
-
-        draw();
-    }, [player, platforms, gameOver, score, highScore]);
-
-    const animateJump = (power) => {
-        setIsJumping(true);
-        const distance = Math.min(200, power * 2);
-        const jumpHeight = Math.min(100, power * 1.5);
-
-        let frame = 0;
-        const totalFrames = 30;
-        const startX = player.x;
-        const startY = player.y;
-
-        const jumpFrame = () => {
-            frame++;
-            const t = frame / totalFrames;
-            const x = startX + distance * t;
-            const y = startY - (4 * jumpHeight * t * (1 - t));
-            setPlayer({ x, y });
-
-            if (frame < totalFrames) {
-                requestAnimationFrame(jumpFrame);
-            } else {
-                finishJump(x);
-            }
-        };
-
-        requestAnimationFrame(jumpFrame);
+    const jump = () => {
+      frame++;
+      const t = frame / total;
+      const x = startX + dist * t;
+      const y = startY - 4 * height * t * (1 - t);
+      setPlayer({ x, y });
+      if (frame < total) requestAnimationFrame(jump);
+      else finishJump(x);
     };
+    requestAnimationFrame(jump);
+  };
 
-    const finishJump = (x) => {
-        const playerMidX = x + 10;
-        const currentPlatform = platforms[platforms.length - 2];
-        const nextPlatform = platforms[platforms.length - 1];
+  const finishJump = (x) => {
+    const mid = x + 10;
+    const curr = platforms[platforms.length - 2];
+    const next = platforms[platforms.length - 1];
 
-        const isOnNext = playerMidX >= nextPlatform.x && playerMidX <= nextPlatform.x + nextPlatform.width;
-        const isOnCurrent = playerMidX >= currentPlatform.x && playerMidX <= currentPlatform.x + currentPlatform.width;
+    if (mid >= next.x && mid <= next.x + next.width) {
+      setPlayer({ x, y: 250 });
+      setScore(s => s + 1);
+      const scale = Math.min(score / 10, 1);
+      const gap = 80 + scale * 60;
+      const width = 60 + Math.random() * (40 - scale * 30);
+      setPlatforms(p => [...p, { x: next.x + gap + Math.random() * 60, width }]);
+    } else if (!(mid >= curr.x && mid <= curr.x + curr.width)) {
+      setGameOver(true);
+      if (score > highScore) {
+        setHighScore(score);
+        localStorage.setItem('jumpHighScore', score);
+      }
+    } else {
+      setPlayer({ x, y: 250 });
+    }
+    setIsJumping(false);
+  };
 
-        if (isOnNext) {
-            setPlayer({ x, y: 250 });
-            setScore(prev => prev + 1);
-            const difficultyScale = Math.min(score / 10, 1);
-            const minGap = 80 + difficultyScale * 40;
-            const maxGap = 140 + difficultyScale * 60;
-            const minWidth = 60 - difficultyScale * 20;
-            const maxWidth = 100 - difficultyScale * 30;
+  const reset = () => {
+    setGameOver(false); setScore(0); setPlayer({ x: 0, y: 250 });
+    setPlatforms([{ x: 0, width: 80 }, { x: 100, width: 80 }]);
+  };
 
-            const newPlatform = {
-                x: nextPlatform.x + minGap + Math.random() * (maxGap - minGap),
-                width: minWidth + Math.random() * (maxWidth - minWidth),
-            };
+  const saveScore = async () => {
+    if (!user) return setMsg('请登录');
+    setLoad(true);
+    const ok = await save(user.uid, 'jump', score);
+    setLoad(false);
+    setMsg(ok ? '新纪录！' : '未超历史');
+  };
 
-            setPlatforms([...platforms, newPlatform]);
-        } else if (isOnCurrent) {
-            setPlayer({ x, y: 250 });
-        } else {
-            setGameOver(true);
-            if (score > highScore) {
-                setHighScore(score);
-                localStorage.setItem('jumpHighScore', score);
-            }
-        }
+  return (
+    <div style={{ textAlign: 'center', padding: '1rem' }}>
+      <h1>跳一跳！Jump 1 Jump 3.6</h1>
+      <canvas ref={canvasRef} style={{ border: '1px solid #ccc' }} />
+      <p style={{ margin: '1rem 0' }}>得分: <strong>{score}</strong> | 最高分: <strong>{highScore}</strong></p>
 
-        setIsJumping(false);
-    };
-
-    const reset = () => {
-        setGameOver(false);
-        setScore(0);
-        setPlayer({ x: 0, y: 250 });
-        setPlatforms([
-            { x: 0, width: 80 },
-            { x: 100, width: 80 },
-        ]);
-        setIsJumping(false);
-    };
-
-    const startCharge = () => {
-        if (!isJumping && !gameOver) {
-            setCharging(true);
-            setChargeStart(performance.now());
-        }
-    };
-
-    const releaseJump = () => {
-        if (charging && !isJumping && !gameOver) {
-            const duration = performance.now() - chargeStart;
-            const power = Math.min(duration / 10, 100);
-            setCharging(false);
-            animateJump(power);
-        }
-    };
-
-
-    return (
-        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-            <h1>跳一跳！Jump 1 Jump 3.6</h1>
-            <canvas ref={canvasRef} style={{ border: '1px solid #ccc' }}></canvas>
-            <p>得分：{score} | 最高分：{highScore}</p>
-
-            {gameOver ? (
-                <div>
-                    <p style={{ color: 'red' }}>你掉了！</p>
-                    <button onClick={reset}>重新开始</button>
-                    <button onClick={saveScore} style={{ marginLeft: '10px' }}>保存分数</button>
-                    {message && <p>{message}</p>}
-                </div>
-            ) : (
-                <button
-                    onMouseDown={startCharge}
-                    onMouseUp={releaseJump}
-                    onTouchStart={(e) => { e.preventDefault(); startCharge(); }}
-                    onTouchEnd={(e) => { e.preventDefault(); releaseJump(); }}
-                    disabled={isJumping}
-                    style={{
-                        marginTop: '1rem',
-                        padding: '1rem 2rem',
-                        fontSize: '1.2rem',
-                        userSelect: 'none',
-                    }}
-                >
-                    {charging ? '蓄力中...' : '跳！'}
-                </button>
-            )}
-
-            
+      {gameOver ? (
+        <div>
+          <p style={{ color: 'red', fontWeight: 'bold' }}>你掉了！</p>
+          <button onClick={reset} style={{ margin: '0.5rem' }}>重新开始</button>
+          <button onClick={saveScore} disabled={load} style={{ margin: '0.5rem' }}>
+            {load ? '保存中...' : '保存分数'}
+          </button>
+          {msg && <p>{msg}</p>}
         </div>
-    );
+      ) : (
+        <button
+          onMouseDown={() => { if (!isJumping) { setCharging(true); setChargeStart(performance.now()); } }}
+          onMouseUp={() => { if (charging) { const p = Math.min((performance.now() - chargeStart) / 10, 100); setCharging(false); animateJump(p); } }}
+          onTouchStart={e => { e.preventDefault(); if (!isJumping) { setCharging(true); setChargeStart(performance.now()); } }}
+          onTouchEnd={e => { e.preventDefault(); if (charging) { const p = Math.min((performance.now() - chargeStart) / 10, 100); setCharging(false); animateJump(p); } }}
+          disabled={isJumping}
+          style={{ marginTop: '1rem', padding: '1rem 2rem', fontSize: '1.2rem' }}
+        >
+          {charging ? '蓄力中...' : '长按跳！'}
+        </button>
+      )}
+    </div>
+  );
 }
