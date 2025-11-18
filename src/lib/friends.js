@@ -41,19 +41,31 @@ export const sendFriendRequest = async (fromUid, toUid) => {
 };
 
 // 接受好友请求
-export const acceptFriendRequest = async (userUid, fromUid) => {
+export const acceptFriendRequest = async (userUid, fromRequestId) => {
+  console.log('接受好友请求:', { userUid, fromRequestId });
+
+  // fromRequestId 是数字ID，不是UID！
   const userProfile = await getProfileByUid(userUid);
-  const fromProfile = await getProfileByUid(fromUid);
-
-  console.log('接受好友请求:', { userUid, fromUid, userProfile, fromProfile });
-
-  if (!userProfile || !fromProfile) {
-    throw new Error('用户不存在');
+  
+  if (!userProfile) {
+    throw new Error('当前用户不存在');
   }
 
-  // 检查请求是否存在
-  if (!userProfile.friendRequests || !userProfile.friendRequests[fromProfile.id]) {
+  // 检查请求是否存在 - fromRequestId 是数字ID
+  if (!userProfile.friendRequests || !userProfile.friendRequests[fromRequestId]) {
+    console.log('好友请求数据:', userProfile.friendRequests);
     throw new Error('好友请求不存在');
+  }
+
+  const requestData = userProfile.friendRequests[fromRequestId];
+  console.log('请求数据:', requestData);
+
+  // 通过请求中的 from 字段获取发送者的UID
+  const fromUid = requestData.from;
+  const fromProfile = await getProfileByUid(fromUid);
+
+  if (!fromProfile) {
+    throw new Error('发送请求的用户不存在');
   }
 
   const updates = {};
@@ -63,24 +75,23 @@ export const acceptFriendRequest = async (userUid, fromUid) => {
   updates[`profiles/${fromProfile.id}/friends/${userProfile.id}`] = 'accepted';
   
   // 删除请求
-  updates[`profiles/${userProfile.id}/friendRequests/${fromProfile.id}`] = null;
+  updates[`profiles/${userProfile.id}/friendRequests/${fromRequestId}`] = null;
 
   await update(ref(db), updates);
+  console.log('好友请求接受成功');
 };
 
 // 拒绝好友请求
-export const rejectFriendRequest = async (userUid, fromUid) => {
+export const rejectFriendRequest = async (userUid, fromRequestId) => {
   const userProfile = await getProfileByUid(userUid);
   
   if (!userProfile) throw new Error('用户不存在');
 
-  const fromProfile = await getProfileByUid(fromUid);
-  if (!fromProfile) throw new Error('发送方用户不存在');
-
   const updates = {};
-  updates[`profiles/${userProfile.id}/friendRequests/${fromProfile.id}`] = null;
+  updates[`profiles/${userProfile.id}/friendRequests/${fromRequestId}`] = null;
   
   await update(ref(db), updates);
+  console.log('好友请求拒绝成功');
 };
 
 // 删除好友
@@ -104,21 +115,46 @@ export const getFriends = async (userUid) => {
   if (!userUid) return [];
   
   const profile = await getProfileByUid(userUid);
-  if (!profile || !profile.friends) return [];
+  console.log('getFriends: 当前用户资料', profile);
+  
+  if (!profile || !profile.friends) {
+    console.log('getFriends: 没有好友数据');
+    return [];
+  }
+  
+  console.log('getFriends: 好友列表数据', profile.friends);
   
   const friends = [];
   for (const [friendId, status] of Object.entries(profile.friends)) {
     if (status === 'accepted') {
-      const friendProfile = await getProfileById(friendId);
-      if (friendProfile) {
-        friends.push({
-          ...friendProfile,
-          friendId: friendProfile.id
-        });
+      console.log('getFriends: 处理好友', { friendId, status, type: typeof friendId });
+      
+      try {
+        // 确保 friendId 是数字
+        const numericFriendId = parseInt(friendId);
+        if (isNaN(numericFriendId)) {
+          console.warn('getFriends: 好友ID不是数字', friendId);
+          continue;
+        }
+        
+        const friendProfile = await getProfileById(numericFriendId);
+        console.log('getFriends: 好友资料', friendProfile);
+        
+        if (friendProfile) {
+          friends.push({
+            ...friendProfile,
+            friendId: friendProfile.id
+          });
+        } else {
+          console.warn('getFriends: 无法找到好友资料', numericFriendId);
+        }
+      } catch (error) {
+        console.error('getFriends: 获取好友资料失败', { friendId, error });
       }
     }
   }
   
+  console.log('getFriends: 最终好友列表', friends);
   return friends;
 };
 
@@ -127,22 +163,47 @@ export const getPendingRequests = async (userUid) => {
   if (!userUid) return [];
   
   const profile = await getProfileByUid(userUid);
-  if (!profile || !profile.friendRequests) return [];
+  console.log('getPendingRequests: 当前用户资料', profile);
+  
+  if (!profile || !profile.friendRequests) {
+    console.log('getPendingRequests: 没有好友请求');
+    return [];
+  }
+  
+  console.log('getPendingRequests: 好友请求数据', profile.friendRequests);
   
   const requests = [];
   for (const [fromUserId, requestData] of Object.entries(profile.friendRequests)) {
     if (requestData.status === 'pending') {
-      const fromProfile = await getProfileById(fromUserId);
-      if (fromProfile) {
-        requests.push({
-          ...requestData,
-          fromUserId,
-          profile: fromProfile
-        });
+      console.log('getPendingRequests: 处理请求', { fromUserId, requestData, type: typeof fromUserId });
+      
+      try {
+        // 确保 fromUserId 是数字
+        const numericFromUserId = parseInt(fromUserId);
+        if (isNaN(numericFromUserId)) {
+          console.warn('getPendingRequests: 请求者ID不是数字', fromUserId);
+          continue;
+        }
+        
+        const fromProfile = await getProfileById(numericFromUserId);
+        console.log('getPendingRequests: 请求者资料', fromProfile);
+        
+        if (fromProfile) {
+          requests.push({
+            ...requestData,
+            fromUserId: numericFromUserId, // 存储数字ID
+            profile: fromProfile
+          });
+        } else {
+          console.warn('getPendingRequests: 无法找到请求者资料', numericFromUserId);
+        }
+      } catch (error) {
+        console.error('getPendingRequests: 获取请求者资料失败', { fromUserId, error });
       }
     }
   }
   
+  console.log('getPendingRequests: 最终请求列表', requests);
   return requests;
 };
 
@@ -150,25 +211,36 @@ export const getPendingRequests = async (userUid) => {
 export const getFriendStatus = async (userUid, otherUserUid) => {
   if (!userUid || !otherUserUid || userUid === otherUserUid) return 'self';
   
+  console.log('getFriendStatus: 检查状态', { userUid, otherUserUid });
+  
   const userProfile = await getProfileByUid(userUid);
   const otherProfile = await getProfileByUid(otherUserUid);
   
-  if (!userProfile || !otherProfile) return 'none';
+  console.log('getFriendStatus: 用户资料', { userProfile, otherProfile });
+  
+  if (!userProfile || !otherProfile) {
+    console.log('getFriendStatus: 用户资料不存在');
+    return 'none';
+  }
   
   // 检查是否已经是好友
   if (userProfile.friends && userProfile.friends[otherProfile.id] === 'accepted') {
+    console.log('getFriendStatus: 已经是好友');
     return 'friend';
   }
   
   // 检查是否有待处理的请求（我发给对方的）
   if (otherProfile.friendRequests && otherProfile.friendRequests[userProfile.id]) {
+    console.log('getFriendStatus: 已发送请求');
     return 'request_sent';
   }
   
   // 检查对方是否发送了请求给我
   if (userProfile.friendRequests && userProfile.friendRequests[otherProfile.id]) {
+    console.log('getFriendStatus: 收到请求');
     return 'request_received';
   }
   
+  console.log('getFriendStatus: 无关系');
   return 'none';
 };

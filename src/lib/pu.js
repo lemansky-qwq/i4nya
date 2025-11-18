@@ -104,20 +104,47 @@ export async function createProfile(uid, nickname = null) {
 }
 
 export async function getProfileById(id) {
-  if (!id || isNaN(id)) {
+  console.log('getProfileById: 输入ID', id, '类型:', typeof id);
+  
+  // 处理各种输入类型
+  let numericId;
+  if (typeof id === 'number') {
+    numericId = id;
+  } else if (typeof id === 'string') {
+    numericId = parseInt(id);
+  } else if (id && typeof id === 'object') {
+    // 如果是对象，尝试从中提取ID
+    console.log('getProfileById: 输入是对象，尝试提取ID', id);
+    if (id.id) {
+      numericId = parseInt(id.id);
+    } else if (id.uid) {
+      // 如果是UID，需要先转换为数字ID
+      return await getProfileByUid(id.uid);
+    } else {
+      throw new Error('无效的用户ID格式');
+    }
+  } else {
+    throw new Error('无效的用户ID类型');
+  }
+  
+  if (isNaN(numericId) || numericId <= 0) {
+    console.error('getProfileById: 无效的用户ID', id);
     throw new Error('无效的用户ID');
   }
 
   try {
-    const snap = await get(ref(db, `profiles/${id}`));
+    const snap = await get(ref(db, `profiles/${numericId}`));
     
     if (!snap.exists()) {
+      console.log('getProfileById: 用户资料不存在', numericId);
       return null;
     }
 
     const data = snap.val();
+    console.log('getProfileById: 成功获取用户资料', { id: numericId, data });
+    
     return {
-      id: parseInt(id),
+      id: numericId,
       ...data
     };
   } catch (error) {

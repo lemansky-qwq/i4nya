@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { auth } from '../../lib/firebase';
 import { getPendingRequests, acceptFriendRequest, rejectFriendRequest } from '../../lib/friends';
-import { getProfileById } from '../../lib/pu';
 import { Link } from 'react-router-dom';
 
 export default function FriendRequests() {
@@ -24,15 +23,8 @@ export default function FriendRequests() {
     try {
       setLoading(true);
       const pendingRequests = await getPendingRequests(currentUser.uid);
-      
-      const requestsWithProfiles = await Promise.all(
-        pendingRequests.map(async (request) => {
-          const profile = await getProfileById(request.fromUserId);
-          return profile ? { ...request, profile } : null;
-        })
-      );
-      
-      setRequests(requestsWithProfiles.filter(Boolean));
+      console.log('加载的好友请求:', pendingRequests);
+      setRequests(pendingRequests);
     } catch (error) {
       console.error('加载好友请求失败:', error);
     } finally {
@@ -40,20 +32,22 @@ export default function FriendRequests() {
     }
   };
 
-  const handleAccept = async (fromUserId) => {
+  const handleAccept = async (fromRequestId) => {
+    console.log('接受请求，fromRequestId:', fromRequestId);
     try {
-      await acceptFriendRequest(currentUser.uid, fromUserId);
-      setRequests(prev => prev.filter(req => req.fromUserId !== fromUserId));
+      await acceptFriendRequest(currentUser.uid, fromRequestId);
+      setRequests(prev => prev.filter(req => req.fromUserId !== fromRequestId));
     } catch (error) {
       console.error('接受请求失败:', error);
       alert('操作失败: ' + error.message);
     }
   };
 
-  const handleReject = async (fromUserId) => {
+  const handleReject = async (fromRequestId) => {
+    console.log('拒绝请求，fromRequestId:', fromRequestId);
     try {
-      await rejectFriendRequest(currentUser.uid, fromUserId);
-      setRequests(prev => prev.filter(req => req.fromUserId !== fromUserId));
+      await rejectFriendRequest(currentUser.uid, fromRequestId);
+      setRequests(prev => prev.filter(req => req.fromUserId !== fromRequestId));
     } catch (error) {
       console.error('拒绝请求失败:', error);
       alert('操作失败: ' + error.message);
@@ -77,7 +71,7 @@ export default function FriendRequests() {
           to="/friends"
           style={{
             padding: '0.5rem 1rem',
-            background: 'var(--secondary-color, #95a5a6)',
+            background: 'var(--secondary-color)',
             color: 'white',
             textDecoration: 'none',
             borderRadius: '6px',
@@ -91,7 +85,7 @@ export default function FriendRequests() {
       {loading ? (
         <p>加载中...</p>
       ) : requests.length === 0 ? (
-        <div style={{ textAlign: 'center', color: 'var(--text-secondary, #666)', margin: '3rem 0' }}>
+        <div style={{ textAlign: 'center', color: 'var(--text-secondary)', margin: '3rem 0' }}>
           <p>没有待处理的好友请求</p>
           <Link to="/friends">查看好友列表</Link>
         </div>
@@ -105,29 +99,27 @@ export default function FriendRequests() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '1rem',
-                border: '1px solid var(--border-color, #ddd)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '8px',
-                background: 'var(--bg-color, #fff)'
+                background: 'var(--card-bg)'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div>
-                  <Link 
-                    to={`/profile/${request.profile.id}`}
-                    style={{ 
-                      fontWeight: 'bold', 
-                      textDecoration: 'none',
-                      color: 'var(--text-color, #333)'
-                    }}
-                  >
-                    {request.profile.nickname}
-                  </Link>
+                  <div style={{ 
+                    fontWeight: 'bold', 
+                    color: 'var(--text-color)'
+                  }}>
+                    {request.profile?.nickname || '未知用户'}
+                  </div>
                   <p style={{ 
                     margin: '0.25rem 0 0 0', 
                     fontSize: '0.8rem',
-                    color: 'var(--text-secondary, #666)'
+                    color: 'var(--text-secondary)'
                   }}>
                     发送于 {new Date(request.createdAt).toLocaleString()}
+                    <br />
+                    请求ID: {request.fromUserId}
                   </p>
                 </div>
               </div>
@@ -137,7 +129,7 @@ export default function FriendRequests() {
                   onClick={() => handleAccept(request.fromUserId)}
                   style={{
                     padding: '0.5rem 1rem',
-                    background: 'var(--success-color, #27ae60)',
+                    background: 'var(--success-color)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
@@ -150,7 +142,7 @@ export default function FriendRequests() {
                   onClick={() => handleReject(request.fromUserId)}
                   style={{
                     padding: '0.5rem 1rem',
-                    background: 'var(--danger-color, #e74c3c)',
+                    background: 'var(--danger-color)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
