@@ -47,7 +47,7 @@ export default function About() {
       <hr />
 
       <footer className="footer">
-        © 2025.6-2025.6 Lem &amp; i3n All rights reserved.
+        © 2025.6-2025.11 Lem &amp; i3n All rights reserved.
       </footer>
     </div>
   );

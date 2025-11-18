@@ -1,9 +1,6 @@
-// src/pages/games/jump.jsx
 import { useEffect, useRef, useState } from 'react';
 import { auth } from '../../lib/firebase';
-import { save } from '../../lib/gs';
-
-
+import { save, getPersonalBest } from '../../lib/gs';
 
 export default function JumpGame() {
   const canvasRef = useRef(null);
@@ -11,6 +8,7 @@ export default function JumpGame() {
   const [platforms, setPlatforms] = useState([{ x: 0, width: 80 }, { x: 100, width: 80 }]);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem('jumpHighScore') || '0'));
+  const [personalBest, setPersonalBest] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [charging, setCharging] = useState(false);
   const [chargeStart, setChargeStart] = useState(0);
@@ -19,7 +17,18 @@ export default function JumpGame() {
   const [msg, setMsg] = useState('');
   const [load, setLoad] = useState(false);
 
-  useEffect(() => auth.onAuthStateChanged(setUser), []);
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      if (user) {
+        // 获取个人最佳成绩
+        getPersonalBest(user.uid, 'jump').then(best => {
+          setPersonalBest(best);
+        });
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   // 绘制
   useEffect(() => {
@@ -96,38 +105,95 @@ export default function JumpGame() {
   const saveScore = async () => {
     if (!user) return setMsg('请登录');
     setLoad(true);
-    const ok = await save(user.uid, 'jump', score);
-    setLoad(false);
-    setMsg(ok ? '新纪录！' : '未超历史');
+    try {
+      const updated = await save(user.uid, 'jump', score);
+      if (updated) {
+        setPersonalBest(score);
+        setMsg('新纪录！已保存');
+      } else {
+        setMsg('未超过历史最高分 ' + personalBest);
+      }
+    } catch (error) {
+      setMsg('保存失败');
+    } finally {
+      setLoad(false);
+    }
   };
 
   return (
-    <div style={{ textAlign: 'center', padding: '1rem' }}>
-      <h1>跳一跳！Jump 1 Jump 3.6</h1>
-      <canvas ref={canvasRef} style={{ border: '1px solid #ccc' }} />
-      <p style={{ margin: '1rem 0' }}>得分: <strong>{score}</strong> | 最高分: <strong>{highScore}</strong></p>
+    <div style={{ maxWidth: 600, margin: '2rem auto', padding: '0 1rem', textAlign: 'center' }}>
+      <div className="card">
+        <h1 className="text-primary">跳一跳</h1>
+        
+        {user && personalBest > 0 && (
+          <p className="text-secondary" style={{marginBottom: '0.5rem' }}>
+            个人最佳: <strong className="text-primary">{personalBest}</strong>
+          </p>
+        )}
+        
+        <canvas 
+          ref={canvasRef} 
+          style={{ 
+            border: '1px solid var(--card-border)',
+            borderRadius: '8px',
+            background: 'var(--input-bg)'
+          }} 
+        />
+        
+        <p className="text-primary" style={{ margin: '1rem 0' }}>
+          得分: <strong>{score}</strong> | 本地最高: <strong>{highScore}</strong>
+        </p>
 
-      {gameOver ? (
-        <div>
-          <p style={{ color: 'red', fontWeight: 'bold' }}>你掉了！</p>
-          <button onClick={reset} style={{ margin: '0.5rem' }}>重新开始</button>
-          <button onClick={saveScore} disabled={load} style={{ margin: '0.5rem' }}>
-            {load ? '保存中...' : '保存分数'}
+        {gameOver ? (
+          <div>
+            <p style={{ 
+              color: 'var(--danger-color)', 
+              fontWeight: 'bold',
+              padding: '10px',
+              background: 'var(--error-bg)',
+              border: '1px solid var(--error-border)',
+              borderRadius: '6px'
+            }}>
+              游戏结束！
+            </p>
+            <div style={{ margin: '1rem 0', display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button onClick={reset} className="btn btn-secondary">重新开始</button>
+              <button onClick={saveScore} disabled={load || !user} className="btn btn-success">
+                {load ? '保存中...' : '保存分数'}
+              </button>
+            </div>
+            {msg && (
+              <p style={{
+                color: msg.includes('新纪录') ? 'var(--success-color)' : 'var(--danger-color)',
+                padding: '10px',
+                background: msg.includes('新纪录') ? 'var(--success-bg)' : 'var(--error-bg)',
+                border: `1px solid ${msg.includes('新纪录') ? 'var(--success-border)' : 'var(--error-border)'}`,
+                borderRadius: '6px'
+              }}>
+                {msg}
+              </p>
+            )}
+          </div>
+        ) : (
+          <button
+            onMouseDown={() => { if (!isJumping) { setCharging(true); setChargeStart(performance.now()); } }}
+            onMouseUp={() => { if (charging) { const p = Math.min((performance.now() - chargeStart) / 10, 100); setCharging(false); animateJump(p); } }}
+            onTouchStart={e => { e.preventDefault(); if (!isJumping) { setCharging(true); setChargeStart(performance.now()); } }}
+            onTouchEnd={e => { e.preventDefault(); if (charging) { const p = Math.min((performance.now() - chargeStart) / 10, 100); setCharging(false); animateJump(p); } }}
+            disabled={isJumping}
+            className="btn btn-primary"
+            style={{ marginTop: '1rem', padding: '1rem 2rem', fontSize: '1.2rem' }}
+          >
+            {charging ? '蓄力中...' : '长按跳跃'}
           </button>
-          {msg && <p>{msg}</p>}
-        </div>
-      ) : (
-        <button
-          onMouseDown={() => { if (!isJumping) { setCharging(true); setChargeStart(performance.now()); } }}
-          onMouseUp={() => { if (charging) { const p = Math.min((performance.now() - chargeStart) / 10, 100); setCharging(false); animateJump(p); } }}
-          onTouchStart={e => { e.preventDefault(); if (!isJumping) { setCharging(true); setChargeStart(performance.now()); } }}
-          onTouchEnd={e => { e.preventDefault(); if (charging) { const p = Math.min((performance.now() - chargeStart) / 10, 100); setCharging(false); animateJump(p); } }}
-          disabled={isJumping}
-          style={{ marginTop: '1rem', padding: '1rem 2rem', fontSize: '1.2rem' }}
-        >
-          {charging ? '蓄力中...' : '长按跳！'}
-        </button>
-      )}
+        )}
+
+        {!user && (
+          <p className="text-warning" style={{ marginTop: '1rem' }}>
+            请登录后保存分数到排行榜
+          </p>
+        )}
+      </div>
     </div>
   );
 }

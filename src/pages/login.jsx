@@ -1,4 +1,3 @@
-// src/pages/login.jsx
 import { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -81,52 +80,69 @@ export default function Login() {
   };
 
   return (
-    <div style={{ maxWidth: 360, margin: '2rem auto', textAlign: 'center' }}>
-      <h2>登录</h2>
-      <form onSubmit={handleLogin}>
-        <input 
-          type="email" 
-          placeholder="邮箱" 
-          value={email} 
-          onChange={e => setEmail(e.target.value)} 
-          required 
-          style={{width:'100%',padding:10,margin:'8px 0'}} 
-        />
-        <input 
-          type="password" 
-          placeholder="密码" 
-          value={password} 
-          onChange={e => setPassword(e.target.value)} 
-          required 
-          style={{width:'100%',padding:10,margin:'8px 0'}} 
-        />
-        <button 
-          type="submit" 
-          disabled={loading}
-          style={{
-            width:'100%',
-            padding:12,
-            marginTop:10,
-            opacity: loading ? 0.6 : 1
-          }}
-        >
-          {loading ? '登录中...' : '登录'}
-        </button>
-      </form>
-      
-      {msg && (
-        <p style={{
-          marginTop:15, 
-          color: msg.includes('成功') ? 'green' : 'red',
-          fontSize: '0.9em'
-        }}>
-          {msg}
+    <div style={{ maxWidth: 400, margin: '2rem auto', padding: '0 1rem', textAlign: 'center' }}>
+      <div className="card">
+        <h2 className="text-primary">登录</h2>
+        <p className="text-secondary" style={{marginTop: '1rem', fontSize: '0.9em'}}>
+          首次登录完请刷新一次界面！
         </p>
-      )}
-      
-      <p style={{marginTop: '1rem', fontSize: '0.9em'}}>
-        还没有账号？ <Link to="/register">立即注册</Link>
-      </p>
+        
+        <form onSubmit={handleLogin}>
+          <input 
+            type="email" 
+            placeholder="邮箱" 
+            value={email} 
+            onChange={e => setEmail(e.target.value)} 
+            required 
+            className="input"
+            style={{width:'91%', margin:'8px 0'}}
+          />
+          <input 
+            type="password" 
+            placeholder="密码" 
+            value={password} 
+            onChange={e => setPassword(e.target.value)} 
+            required 
+            className="input"
+            style={{width:'91%', margin:'8px 0'}}
+          />
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="btn btn-primary"
+            style={{width:'91%', marginTop:10}}
+          >
+            {loading ? '登录中...' : '登录'}
+          </button>
+        </form>
+        
+        {msg && (
+          <p style={{
+            marginTop:15, 
+            color: msg.includes('成功') ? 'var(--success-color)' : 'var(--danger-color)',
+            fontSize: '0.9em',
+            padding: '10px',
+            background: msg.includes('成功') ? 'var(--success-bg)' : 'var(--error-bg)',
+            border: `1px solid ${msg.includes('成功') ? 'var(--success-border)' : 'var(--error-border)'}`,
+            borderRadius: '6px'
+          }}>
+            {msg}
+          </p>
+        )}
+        
+        <p style={{ marginTop: '1rem', fontSize: '0.9em' }}>
+          <Link to="/forgot-password" className="text-secondary" style={{textDecoration: 'none'}}>
+            忘记密码？
+          </Link>
+        </p>
+        
+        <p style={{marginTop: '1rem', fontSize: '0.9em'}}>
+          <span className="text-secondary">还没有账号？ </span>
+          <Link to="/register" className="text-primary" style={{textDecoration: 'none'}}>
+            立即注册
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

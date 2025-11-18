@@ -10,13 +10,13 @@ export default function Games() {
   ];
 
   return (
-    <div className="games-page">
-      <h1>小游戏</h1>
+    <div className="games-page" style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1rem' }}>
+      <h1 className="text-primary">小游戏</h1>
       <div className="games-grid">
         {games.map((game, i) => (
-          <Link to={game.path} className="game-card" key={i}>
-            <h3>{game.title}</h3>
-            <p>{game.description}</p>
+          <Link to={game.path} className="game-card card" key={i} style={{ textDecoration: 'none' }}>
+            <h3 className="text-primary">{game.title}</h3>
+            <p className="text-secondary">{game.description}</p>
           </Link>
         ))}
       </div>

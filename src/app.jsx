@@ -17,7 +17,11 @@ import Game2048 from './pages/games/2048';
 import Login from './pages/login';
 import Register from './pages/register';
 import Profile from './pages/profile';
+import Settings from './pages/settings';
 import Leaderboard from './pages/games/score';
+import ForgotPassword from './pages/forgot-password';
+import Friends from './pages/friends';
+import FriendRequests from './pages/friends/requests';
 
 import './components/theme.css';
 
@@ -137,7 +141,11 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/profile/:id" element={<Profile />} />
           <Route path="/games/score" element={<Leaderboard />} />
+		  <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
+		  <Route path="/forgot-password" element={<ForgotPassword />} />
+		  <Route path="/friends" element={<Friends />} />
+		  <Route path="/friends/requests" element={<FriendRequests />} />
         </Routes>
       </div>
     </>

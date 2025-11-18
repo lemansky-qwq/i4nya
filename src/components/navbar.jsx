@@ -1,7 +1,6 @@
 // src/components/navbar.jsx
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { getNumericIdByUid } from '../lib/pu';
 import './navbar.css';
@@ -29,20 +28,15 @@ export default function Navbar({ handleChangeTheme, user }) {
 
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/');
-    } catch (error) {
-      console.error('退出登录失败:', error);
-    }
-  };
-
   // 添加缺失的 handleProfileClick 函数
   const handleProfileClick = () => {
     if (profileId) {
       navigate(`/profile/${profileId}`);
     }
+  };
+
+  const handleSettings = () => {
+    navigate(`/settings`);
   };
 
   return (
@@ -51,6 +45,7 @@ export default function Navbar({ handleChangeTheme, user }) {
         <Link to="/" className="nav-link">首页</Link>
         <Link to="/about" className="nav-link">关于</Link>
         <Link to="/games" className="nav-link">小游戏</Link>
+		<Link to="/friends">好友列表</Link>
       </div>
 
       <div className="navbar-right">
@@ -69,8 +64,8 @@ export default function Navbar({ handleChangeTheme, user }) {
             ) : (
               <span className="loading-text">加载中...</span>
             )}
-            <button className="nav-button logout-button" onClick={handleLogout}>
-              登出
+            <button className="nav-button settings-button" onClick={handleSettings}>
+              设置
             </button>
           </div>
         ) : (

@@ -8,42 +8,262 @@ body {
 .theme-light {
   background-color: #f5f5f5;
   color: #1e1e1e;
+  --card-bg: #ffffff;
+  --card-border: #e0e0e0;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --input-bg: #ffffff;
+  --input-border: #d0d0d0;
+  --text-primary: #1e1e1e;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --primary-color: #3498db;
+  --secondary-color: #95a5a6;
+  --success-color: #27ae60;
+  --warning-color: #f39c12;
+  --danger-color: #e74c3c;
+  --success-bg: #f0fff0;
+  --success-border: #d4edda;
+  --error-bg: #fff0f0;
+  --error-border: #f5c6cb;
+  --warning-bg: #fff3cd;
 }
 
 /* 深色主题 */
 .theme-dark {
   background-color: #1e1e1e;
   color: #f0f0f0;
+  --card-bg: #2d2d2d;
+  --card-border: #404040;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --input-bg: #3d3d3d;
+  --input-border: #555555;
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0b0;
+  --text-muted: #888888;
+  --primary-color: #4a9fe4;
+  --secondary-color: #7f8c8d;
+  --success-color: #2ecc71;
+  --warning-color: #f1c40f;
+  --danger-color: #e74c3c;
+  --success-bg: #1a331a;
+  --success-border: #27ae60;
+  --error-bg: #331a1a;
+  --error-border: #c0392b;
+  --warning-bg: #332701;
 }
 
 /* 春季主题 - 浅粉背景，深灰文字 */
 .theme-spring {
-  background-color: #ffe6ea; /* 浅粉 */
-  color: #4a3f45; /* 深灰偏紫 */
+  background-color: #ffe6ea;
+  color: #4a3f45;
+  --card-bg: #ffffff;
+  --card-border: #ffd1d9;
+  --card-shadow: 0 2px 8px rgba(255, 182, 193, 0.2);
+  --input-bg: #ffffff;
+  --input-border: #ffd1d9;
+  --text-primary: #4a3f45;
+  --text-secondary: #7a6a72;
+  --text-muted: #a899a0;
+  --primary-color: #ff6b93;
+  --secondary-color: #c97b8f;
+  --success-color: #4caf50;
+  --warning-color: #ff9800;
+  --danger-color: #f44336;
+  --success-bg: #f0fff0;
+  --success-border: #d4edda;
+  --error-bg: #fff0f0;
+  --error-border: #f5c6cb;
+  --warning-bg: #fff3cd;
 }
 
 /* 夏季主题 - 深绿色背景，米白文字 */
 .theme-summer {
-  background-color: #143714; /* 深绿 */
-  color: #f0f0e8; /* 浅米白 */
+  background-color: #143714;
+  color: #f0f0e8;
+  --card-bg: #1f4f1f;
+  --card-border: #2a662a;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --input-bg: #1a3d1a;
+  --input-border: #2a662a;
+  --text-primary: #f0f0e8;
+  --text-secondary: #c8d4c8;
+  --text-muted: #a0b0a0;
+  --primary-color: #4caf50;
+  --secondary-color: #8bc34a;
+  --success-color: #66bb6a;
+  --warning-color: #ffb74d;
+  --danger-color: #ef5350;
+  --success-bg: #1a331a;
+  --success-border: #4caf50;
+  --error-bg: #331a1a;
+  --error-border: #ef5350;
+  --warning-bg: #1a2a0a;
 }
 
 /* 秋季主题 - 橙棕背景，浅米色文字 */
 .theme-autumn {
-  background-color: #6d3916; /* 橙棕 */
-  color: #fff3e0; /* 浅米色 */
+  background-color: #6d3916;
+  color: #fff3e0;
+  --card-bg: #8b4513;
+  --card-border: #a0522d;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --input-bg: #7a3d12;
+  --input-border: #a0522d;
+  --text-primary: #fff3e0;
+  --text-secondary: #e8d5c4;
+  --text-muted: #d0c0a8;
+  --primary-color: #ff9800;
+  --secondary-color: #ffb74d;
+  --success-color: #8bc34a;
+  --warning-color: #ffa726;
+  --danger-color: #f44336;
+  --success-bg: #2e3716;
+  --success-border: #8bc34a;
+  --error-bg: #371616;
+  --error-border: #f44336;
+  --warning-bg: #332100;
 }
 
 /* 冬季主题 - 银色背景，深蓝灰文字 */
 .theme-winter {
-  background-color: #dcf5ff; /* 银色 */
-  color: #2c3e50; /* 深蓝灰 */
+  background-color: #dcf5ff;
+  color: #2c3e50;
+  --card-bg: #ffffff;
+  --card-border: #b3e0f2;
+  --card-shadow: 0 2px 8px rgba(176, 224, 230, 0.3);
+  --input-bg: #ffffff;
+  --input-border: #b3e0f2;
+  --text-primary: #2c3e50;
+  --text-secondary: #5d6d7e;
+  --text-muted: #85929e;
+  --primary-color: #3498db;
+  --secondary-color: #85c1e9;
+  --success-color: #27ae60;
+  --warning-color: #f39c12;
+  --danger-color: #e74c3c;
+  --success-bg: #f0fff0;
+  --success-border: #d4edda;
+  --error-bg: #fff0f0;
+  --error-border: #f5c6cb;
+  --warning-bg: #e3f2fd;
 }
 
 /* 噩梦主题 */
 .theme-nightmare {
   background-color: #000;
   color: #cc0000;
+  --card-bg: #1a0000;
+  --card-border: #330000;
+  --card-shadow: 0 2px 8px rgba(204, 0, 0, 0.3);
+  --input-bg: #0a0000;
+  --input-border: #330000;
+  --text-primary: #cc0000;
+  --text-secondary: #990000;
+  --text-muted: #660000;
+  --primary-color: #ff0000;
+  --secondary-color: #cc0000;
+  --success-color: #00cc00;
+  --warning-color: #ff6600;
+  --danger-color: #ff0000;
+  --success-bg: #001a00;
+  --success-border: #00cc00;
+  --error-bg: #1a0000;
+  --error-border: #ff0000;
+  --warning-bg: #330000;
+}
+
+/* 卡片样式 */
+.card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* 输入框样式 */
+.input {
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 0.8rem;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* 文本样式 */
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* 按钮基础样式 */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.btn-warning {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 /* 右侧切换栏样式 */

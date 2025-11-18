@@ -1,6 +1,6 @@
 // src/lib/gs.js
 import { db } from './firebase';
-import { ref, set, get, update, query, orderByChild, limitToLast, startAt } from 'firebase/database';
+import { ref, set, get, update } from 'firebase/database';
 import { getProfileById } from './pu';
 
 // 保存分数（只保存最高分）
@@ -8,13 +8,17 @@ export async function save(uid, game, score) {
   if (!uid || !game) return false;
   
   try {
-    const userScoresRef = ref(db, `users/${uid}/scores/${game}`);
-    const currentSnap = await get(userScoresRef);
+    // 获取用户的数字ID
+    const numericId = await getNumericIdByUid(uid);
+    if (!numericId) return false;
+    
+    const profileScoresRef = ref(db, `profiles/${numericId}/scores/${game}`);
+    const currentSnap = await get(profileScoresRef);
     const currentScore = currentSnap.val() || 0;
     
     // 只保存更高的分数
     if (score > currentScore) {
-      await set(userScoresRef, score);
+      await set(profileScoresRef, score);
       return true;
     }
     return false;
@@ -25,24 +29,29 @@ export async function save(uid, game, score) {
 }
 
 // 获取排行榜
-export async function top(game, limit = 8) {  // 改为8
+export async function top(game, limit = 8) {
   if (!game) return [];
   
   try {
-    const scoresRef = ref(db, 'users');
-    const snap = await get(scoresRef);
+    const profilesRef = ref(db, 'profiles');
+    const snap = await get(profilesRef);
     
     if (!snap.exists()) return [];
     
-    const users = snap.val();
+    const profiles = snap.val();
     const scores = [];
     
     // 收集所有用户的该游戏分数
-    for (const uid in users) {
-      if (users[uid].scores && users[uid].scores[game]) {
+    for (const profileId in profiles) {
+      // 跳过 nextId 等非用户数据
+      if (profileId === 'nextId') continue;
+      
+      const profile = profiles[profileId];
+      if (profile.scores && profile.scores[game]) {
         scores.push({
-          uid,
-          score: users[uid].scores[game]
+          profileId: parseInt(profileId),
+          score: profile.scores[game],
+          nickname: profile.nickname || '匿名用户'
         });
       }
     }
@@ -50,43 +59,15 @@ export async function top(game, limit = 8) {  // 改为8
     // 按分数排序
     scores.sort((a, b) => b.score - a.score);
     
-    // 限制数量并获取用户信息
+    // 限制数量
     const topScores = scores.slice(0, limit);
-    const result = [];
     
-    for (const item of topScores) {
-      try {
-        // 获取用户数字ID
-        const uidToIdRef = ref(db, `uidToId/${item.uid}`);
-        const idSnap = await get(uidToIdRef);
-        const numericId = idSnap.val();
-        
-        if (numericId) {
-          const profile = await getProfileById(numericId);
-          result.push({
-            n: profile?.nickname || '匿名用户',
-            s: item.score,
-            id: numericId,  // 添加数字ID
-            uid: item.uid
-          });
-        } else {
-          result.push({
-            n: '未知用户',
-            s: item.score,
-            id: 0,  // 未知ID设为0
-            uid: item.uid
-          });
-        }
-      } catch (error) {
-        console.error('获取用户信息失败:', error);
-        result.push({
-          n: '加载失败',
-          s: item.score,
-          id: 0,
-          uid: item.uid
-        });
-      }
-    }
+    // 格式化结果
+    const result = topScores.map(item => ({
+      n: item.nickname,
+      s: item.score,
+      id: item.profileId
+    }));
     
     return result;
   } catch (error) {
@@ -100,11 +81,22 @@ export async function getPersonalBest(uid, game) {
   if (!uid || !game) return 0;
   
   try {
-    const scoreRef = ref(db, `users/${uid}/scores/${game}`);
+    // 获取用户的数字ID
+    const numericId = await getNumericIdByUid(uid);
+    if (!numericId) return 0;
+    
+    const scoreRef = ref(db, `profiles/${numericId}/scores/${game}`);
     const snap = await get(scoreRef);
     return snap.val() || 0;
   } catch (error) {
     console.error('获取个人最佳成绩失败:', error);
     return 0;
   }
+}
+
+// 辅助函数：通过UID获取数字ID
+async function getNumericIdByUid(uid) {
+  if (!uid) return null;
+  const snap = await get(ref(db, `uidToId/${uid}`));
+  return snap.val() || null;
 }

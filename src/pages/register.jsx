@@ -1,8 +1,7 @@
-// src/pages/register.jsx
 import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // 添加 Link
 
 const ALLOWED_DOMAINS = ['gmail.com','163.com','126.com','qq.com','outlook.com','hotmail.com','yahoo.com','icloud.com','sina.com','sohu.com'];
 const REGISTER_COOLDOWN = 2 * 60 * 1000;
@@ -81,7 +80,7 @@ export default function Register() {
 
       localStorage.setItem('lastRegisterTime', Date.now().toString());
 
-      setMsg('<span style="color:green">注册成功！请查收邮件点击验证链接（记得看垃圾箱）</span>');
+      setMsg('注册成功！请查收邮件点击验证链接（记得看垃圾箱）');
       setTimeout(() => navigate('/login'), 2500);
 
     } catch (err) {
@@ -97,42 +96,72 @@ export default function Register() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto', padding: '1rem', textAlign: 'center' }}>
-      <h2>注册</h2>
-      <form onSubmit={handleRegister}>
-        <input 
-          placeholder="昵称（1-12字)" 
-          value={nickname} 
-          onChange={e => setNickname(e.target.value.slice(0,12))} 
-          required 
-          style={{width:'100%',padding:10,margin:'8px 0'}} 
-        />
-        <input 
-          type="email" 
-          placeholder="邮箱" 
-          value={email} 
-          onChange={e=>setEmail(e.target.value)} 
-          required 
-          style={{width:'100%',padding:10,margin:'8px 0'}} 
-        />
-        <input 
-          type="password" 
-          placeholder="密码（至少6位）" 
-          value={password} 
-          onChange={e=>setPassword(e.target.value)} 
-          required 
-          style={{width:'100%',padding:10,margin:'8px 0'}} 
-        />
-        <button type="submit" disabled={loading} style={{width:'100%',padding:12,marginTop:10}}>
-          {loading ? '注册中...' : '注册'}
-        </button>
-      </form>
+    <div style={{ maxWidth: 400, margin: '2rem auto', padding: '0 1rem', textAlign: 'center' }}>
+      <div className="card">
+        <h2 className="text-primary">注册</h2>
+        
+        <form onSubmit={handleRegister}>
+          <input 
+            placeholder="昵称（1-12字)" 
+            value={nickname} 
+            onChange={e => setNickname(e.target.value.slice(0,12))} 
+            required 
+            className="input"
+            style={{width:'91%', margin:'8px 0'}}
+          />
+          <input 
+            type="email" 
+            placeholder="邮箱" 
+            value={email} 
+            onChange={e=>setEmail(e.target.value)} 
+            required 
+            className="input"
+            style={{width:'91%', margin:'8px 0'}}
+          />
+          <input 
+            type="password" 
+            placeholder="密码（至少6位）" 
+            value={password} 
+            onChange={e=>setPassword(e.target.value)} 
+            required 
+            className="input"
+            style={{width:'91%', margin:'8px 0'}}
+          />
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className="btn btn-primary"
+            style={{width:'91%', marginTop:10}}
+          >
+            {loading ? '注册中...' : '注册'}
+          </button>
+        </form>
 
-      {msg && <p dangerouslySetInnerHTML={{__html: msg}} style={{marginTop:15}} />}
+        {msg && (
+          <p style={{
+            marginTop:15,
+            color: msg.includes('成功') ? 'var(--success-color)' : 'var(--danger-color)',
+            padding: '10px',
+            background: msg.includes('成功') ? 'var(--success-bg)' : 'var(--error-bg)',
+            border: `1px solid ${msg.includes('成功') ? 'var(--success-border)' : 'var(--error-border)'}`,
+            borderRadius: '6px',
+            fontSize: '0.9em'
+          }}>
+            {msg}
+          </p>
+        )}
 
-      <p style={{fontSize:'0.8em',color:'#666',marginTop:30}}>
-        支持邮箱：{ALLOWED_DOMAINS.slice(0,6).join('、')} 等
-      </p>
+        <p style={{marginTop: '1rem', fontSize: '0.9em'}}>
+          <span className="text-secondary">已有账号？ </span>
+          <Link to="/login" className="text-primary" style={{textDecoration: 'none'}}>
+            立即登录
+          </Link>
+        </p>
+
+        <p className="text-muted" style={{fontSize:'0.8em', marginTop:30}}>
+          支持邮箱：{ALLOWED_DOMAINS.slice(0,6).join('、')} 等
+        </p>
+      </div>
     </div>
   );
 }

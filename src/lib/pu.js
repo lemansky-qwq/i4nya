@@ -18,6 +18,36 @@ export async function getNumericIdByUid(uid) {
   }
 }
 
+// 添加这个关键函数 - 通过 UID 获取用户资料
+export async function getProfileByUid(uid) {
+  if (!uid) {
+    console.warn('getProfileByUid: uid 为空');
+    return null;
+  }
+
+  try {
+    console.log('getProfileByUid: 查找 UID', uid);
+    
+    // 先通过 uidToId 映射找到数字 ID
+    const numericId = await getNumericIdByUid(uid);
+    console.log('getProfileByUid: 找到数字 ID', numericId);
+    
+    if (!numericId) {
+      console.log('getProfileByUid: 未找到对应的数字 ID');
+      return null;
+    }
+
+    // 通过数字 ID 获取用户资料
+    const profile = await getProfileById(numericId);
+    console.log('getProfileByUid: 找到用户资料', profile);
+    
+    return profile;
+  } catch (error) {
+    console.error('通过 UID 获取用户资料失败:', error);
+    return null;
+  }
+}
+
 export async function createProfile(uid, nickname = null) {
   if (!uid) {
     throw new Error('用户ID不能为空');
@@ -154,4 +184,3 @@ export async function debugUserProfile(uid) {
   
   console.log('=== 调试结束 ===');
 }
-
