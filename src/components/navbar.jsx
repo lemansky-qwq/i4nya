@@ -4,57 +4,80 @@ import { Link, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { getNumericIdByUid } from '../lib/pu';
-import './navbar.css'; // 保留你的 CSS 文件
+import './navbar.css';
 
 export default function Navbar({ handleChangeTheme, user }) {
-  const [profileId, setProfileId] = useState(null); // 加类型（可选）
+  const [profileId, setProfileId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
-  // 登录后获取数字 ID
+  // 监听 user 变化，获取数字 ID
   useEffect(() => {
     if (!user) {
       setProfileId(null);
       return;
     }
-    getNumericIdByUid(user.uid).then(id => setProfileId(id));
+    
+    getNumericIdByUid(user.uid)
+      .then(id => {
+        setProfileId(id);
+      })
+      .catch(err => {
+        console.error('获取用户ID失败:', err);
+      });
   }, [user]);
 
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
   const handleLogout = async () => {
-    await signOut(auth);
-    navigate('/login');
+    try {
+      await signOut(auth);
+      navigate('/');
+    } catch (error) {
+      console.error('退出登录失败:', error);
+    }
   };
 
+  // 添加缺失的 handleProfileClick 函数
+  const handleProfileClick = () => {
+    if (profileId) {
+      navigate(`/profile/${profileId}`);
+    }
+  };
 
   return (
     <nav className="navbar">
       <div className="navbar-left">
-        <Link to="/">首页</Link>
-        <Link to="/about">关于</Link>
-        <Link to="/games">小游戏</Link>
+        <Link to="/" className="nav-link">首页</Link>
+        <Link to="/about" className="nav-link">关于</Link>
+        <Link to="/games" className="nav-link">小游戏</Link>
       </div>
 
       <div className="navbar-right">
         {user ? (
-          <>
+          <div className="user-section">
+            <span style={{ color: 'var(--nav-text)', marginRight: '1rem' }}>
+              欢迎，{user.email}
+            </span>
             {profileId !== null ? (
-              <Link to={`/profile/${profileId}`} className="nav-button">
+              <button 
+                className="nav-button profile-button"
+                onClick={handleProfileClick}
+              >
                 我的主页
-              </Link>
+              </button>
             ) : (
-              <span className="nav-button">加载中...</span>
+              <span className="loading-text">加载中...</span>
             )}
-            <button className="nav-button" onClick={handleLogout}>
+            <button className="nav-button logout-button" onClick={handleLogout}>
               登出
             </button>
-          </>
+          </div>
         ) : (
-          <>
-            <Link to="/login" className="nav-button">登录</Link>
-            <Link to="/register" className="nav-button">注册</Link>
-          </>
+          <div className="auth-section">
+            <Link to="/login" className="nav-button login-button">登录</Link>
+            <Link to="/register" className="nav-button register-button">注册</Link>
+          </div>
         )}
       </div>
 

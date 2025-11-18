@@ -1,72 +1,157 @@
 // src/lib/pu.js
-import { ref, get, runTransaction, set } from 'firebase/database';
 import { db } from './firebase';
+import { ref, set, get, update } from 'firebase/database';
 
-// 获取下一个数字 ID
-export const getNextId = async () => {
-  const r = ref(db, 'profiles/nextId');
-  const snap = await runTransaction(r, c => (c || 0) + 1);
-  return snap.snapshot.val();
-};
+// 确保所有函数都有 export
+export async function getNumericIdByUid(uid) {
+  if (!uid) {
+    console.warn('getNumericIdByUid: uid 为空');
+    return null;
+  }
 
-// 创建 profile（返回数字 ID）
-export const createProfile = async (uid, nickname) => {
   try {
-    const numericId = await getNextId();
-    const idStr = String(numericId);  // 强制转字符串
-    const path = `profiles/${idStr}`;
+    const snap = await get(ref(db, `uidToId/${uid}`));
+    return snap.val() || null;
+  } catch (error) {
+    console.error('获取用户ID失败:', error);
+    throw new Error('获取用户信息失败');
+  }
+}
 
-    await set(ref(db, path), {
-      id: numericId,
-      uid: uid,
-      nickname: nickname || '匿名',
+export async function createProfile(uid, nickname = null) {
+  if (!uid) {
+    throw new Error('用户ID不能为空');
+  }
+
+  console.log('创建档案，uid:', uid, 'nickname:', nickname);
+
+  // 清理和验证昵称 - 确保不为空
+  let safeNickname;
+  if (nickname && nickname.trim()) {
+    safeNickname = nickname.trim().slice(0, 12).replace(/[<>]/g, '');
+  } else {
+    // 如果昵称为空，生成默认昵称
+    safeNickname = `用户${Math.floor(Math.random() * 9999)}`;
+  }
+
+  console.log('最终使用的昵称:', safeNickname);
+
+  try {
+    // 先读取当前的 nextId
+    const nextIdRef = ref(db, 'profiles/nextId');
+    const nextSnap = await get(nextIdRef);
+    
+    let newNumericId = 1;
+    if (nextSnap.exists()) {
+      newNumericId = nextSnap.val();
+    }
+
+    const profileData = {
+      uid,
+      nickname: safeNickname,
       bio: '',
       createdAt: Date.now(),
-    });
+      lastLoginAt: Date.now(),
+    };
 
-    console.log('Profile created →', path);
-    return numericId;
+    console.log('准备写入的数据:', profileData);
+
+    // 使用 update 方法批量写入多个路径
+    const updates = {};
+    updates[`profiles/${newNumericId}`] = profileData;
+    updates[`uidToId/${uid}`] = newNumericId;
+    updates['profiles/nextId'] = newNumericId + 1;
+
+    await update(ref(db), updates);
+
+    console.log('用户档案创建成功，ID:', newNumericId);
+    return newNumericId;
+
   } catch (error) {
-    console.error('createProfile 失败:', error);
-    throw error;
+    console.error('创建用户档案失败:', error);
+    throw new Error('创建用户档案失败: ' + error.message);
   }
-};
+}
 
-export const getProfileById = async (numericId) => {
-  const idStr = String(numericId);  // 强制转字符串
-  const snap = await get(ref(db, `profiles/${idStr}`));
-  const data = snap.val();
-
-  console.log(`[getProfileById] ${idStr} →`, data);
-  return data;
-};
-
-// 通过 uid 找回数字 ID（登录后用）
-export const getNumericIdByUid = async (uid) => {
-  if (!uid) return null;
+export async function getProfileById(id) {
+  if (!id || isNaN(id)) {
+    throw new Error('无效的用户ID');
+  }
 
   try {
-    const snap = await get(ref(db, 'profiles'));
-    const all = snap.val();
-
-    if (!all) {
-      console.warn('profiles 节点为空');
+    const snap = await get(ref(db, `profiles/${id}`));
+    
+    if (!snap.exists()) {
       return null;
     }
 
-    for (const [key, val] of Object.entries(all)) {
-      if (key === 'nextId') continue;
-      if (val && val.uid === uid) {
-        const numericId = Number(key);  // key 是字符串，转 number
-        console.log(`找到用户: uid=${uid} → id=${numericId}`);
-        return numericId;
-      }
-    }
-    console.warn(`未找到 uid=${uid} 的 profile`);
-    return null;
-
+    const data = snap.val();
+    return {
+      id: parseInt(id),
+      ...data
+    };
   } catch (error) {
-    console.error('getNumericIdByUid 出错:', error);
-    return null;
+    console.error('获取用户档案失败:', error);
+    throw new Error('获取用户信息失败');
   }
-};
+}
+
+// 更新最后登录时间
+export async function updateLastLogin(id) {
+  try {
+    await set(ref(db, `profiles/${id}/lastLoginAt`), Date.now());
+  } catch (error) {
+    console.error('更新登录时间失败:', error);
+  }
+}
+
+export async function updateProfileBio(profileId, bio, uid) {
+  if (!profileId || !uid) {
+    throw new Error('参数不能为空');
+  }
+
+  try {
+    // 验证用户权限
+    const profileRef = ref(db, `profiles/${profileId}`);
+    const profileSnap = await get(profileRef);
+    
+    if (!profileSnap.exists()) {
+      throw new Error('用户资料不存在');
+    }
+    
+    const profileData = profileSnap.val();
+    if (profileData.uid !== uid) {
+      throw new Error('无权修改此用户资料');
+    }
+
+    // 更新 bio
+    const updates = {
+      bio: bio.slice(0, 200) // 限制长度
+    };
+    
+    await update(profileRef, updates);
+    console.log('Bio 更新成功');
+    return true;
+    
+  } catch (error) {
+    console.error('更新 bio 失败:', error);
+    throw error;
+  }
+}
+
+// 调试函数
+export async function debugUserProfile(uid) {
+  console.log('=== 调试用户档案 ===');
+  console.log('UID:', uid);
+  
+  const numericId = await getNumericIdByUid(uid);
+  console.log('Numeric ID:', numericId);
+  
+  if (numericId) {
+    const profile = await getProfileById(numericId);
+    console.log('Profile 数据:', profile);
+  }
+  
+  console.log('=== 调试结束 ===');
+}
+
