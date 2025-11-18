@@ -214,7 +214,7 @@ export default function Profile() {
               rows="4"
               className="input"
               style={{
-                width: '100%',
+                width: '91%',
                 resize: 'vertical',
                 minHeight: '100px'
               }}

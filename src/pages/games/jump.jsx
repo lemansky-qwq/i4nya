@@ -34,7 +34,7 @@ export default function JumpGame() {
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    canvas.width = 600; canvas.height = 300;
+    canvas.width = 550; canvas.height = 300;
 
     const draw = () => {
       ctx.clearRect(0, 0, 600, 300);
