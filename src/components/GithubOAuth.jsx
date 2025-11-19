@@ -39,7 +39,7 @@ export default function GitHubOAuth() {
         fontSize: '14px'
       }}
     >
-      {loading ? '跳转中...' : 'GitHub 注册/登录（测试版本）'}
+      {loading ? '跳转中...' : 'GitHub 注册 / 登录（测试版本）'}
     </button>
   );
 }
