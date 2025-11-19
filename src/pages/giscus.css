@@ -1,0 +1,90 @@
+/* 聊天室容器 */
+.chat-container {
+  width: 91%;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 80vh;
+}
+
+/* 聊天室头部 */
+.chat-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.chat-header h1 {
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.chat-header p {
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.chat-header small {
+  color: var(--text-muted);
+}
+
+/* Giscus 容器 */
+.chat-main {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  min-height: 600px;
+}
+
+#giscus-chat {
+  width: 100%;
+  min-height: 600px;
+}
+
+/* 确保 Giscus iframe 样式正常 */
+.giscus-frame {
+  width: 100% !important;
+  border: none !important;
+  min-height: 600px;
+}
+
+/* 加载状态 */
+.chat-loading, .chat-auth-required {
+  text-align: center;
+  padding: 100px 20px;
+  color: var(--text-secondary);
+}
+
+.chat-auth-required {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 60px 40px;
+  margin: 50px auto;
+  max-width: 500px;
+  box-shadow: var(--card-shadow);
+}
+
+.chat-auth-required h2 {
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.chat-auth-required p {
+  color: var(--text-secondary);
+  margin-bottom: 25px;
+}
+
+.chat-auth-required button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chat-auth-required button:hover {
+  opacity: 0.9;
+}

@@ -25,6 +25,8 @@ import FriendRequests from './pages/friends/requests';
 import Admin from './pages/admin';
 import Announcements from './pages/announcements';
 import Alert from './components/Alert';
+import ChatPage from './pages/chat';
+import Giscus from './pages/giscus';
 
 import './components/theme.css';
 
@@ -152,6 +154,8 @@ export default function App() {
 		  <Route path="/friends/requests" element={<FriendRequests />} />
 		  <Route path="/admin" element={<Admin />} />
 		  <Route path="/announcements" element={<Announcements />} />
+		  <Route path="/chat" element={<ChatPage />} />
+		  <Route path="/giscus" element={<Giscus />} />
         </Routes>
       </div>
     </>

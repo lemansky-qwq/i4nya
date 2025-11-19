@@ -15,7 +15,8 @@
     "react-dom": "^18.2.0",
     "react-i18next": "^15.5.3",
     "react-icons": "^5.5.0",
-    "react-router-dom": "^6.17.0"
+    "react-router-dom": "^6.17.0",
+    "twikoo": "^1.6.44"
   },
   "devDependencies": {
     "@types/react": "^19.1.8",
