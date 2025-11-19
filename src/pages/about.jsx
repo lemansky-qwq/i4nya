@@ -42,6 +42,11 @@ export default function About() {
             Gugu的小窝
           </a>
         </li>
+		<li>
+          <a href="https://po7ed.github.io/en-cppreference/search.html" target="_blank" rel="noopener noreferrer">
+            CppReference镜像站（Po7ed）
+          </a>
+        </li>
       </ul>
 
       <hr />

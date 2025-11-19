@@ -22,6 +22,9 @@ import Leaderboard from './pages/games/score';
 import ForgotPassword from './pages/forgot-password';
 import Friends from './pages/friends';
 import FriendRequests from './pages/friends/requests';
+import Admin from './pages/admin';
+import Announcements from './pages/announcements';
+import Alert from './components/Alert';
 
 import './components/theme.css';
 
@@ -130,6 +133,7 @@ export default function App() {
     <>
       <Navbar handleChangeTheme={handleChangeTheme} user={user} />
       <div className="container">
+		<Alert />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
@@ -146,6 +150,8 @@ export default function App() {
 		  <Route path="/forgot-password" element={<ForgotPassword />} />
 		  <Route path="/friends" element={<Friends />} />
 		  <Route path="/friends/requests" element={<FriendRequests />} />
+		  <Route path="/admin" element={<Admin />} />
+		  <Route path="/announcements" element={<Announcements />} />
         </Routes>
       </div>
     </>

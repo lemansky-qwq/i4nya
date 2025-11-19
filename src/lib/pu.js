@@ -196,6 +196,228 @@ export async function updateProfileBio(profileId, bio, uid) {
   }
 }
 
+// 在 pu.js 中添加角色相关函数
+export const ROLES = {
+  USER: 'user',
+  ADMIN: 'admin'
+};
+
+// 检查用户角色
+export const getUserRole = async (uid) => {
+  try {
+    const profile = await getProfileByUid(uid);
+    return profile?.role || ROLES.USER;
+  } catch (error) {
+    console.error('获取用户角色失败:', error);
+    return ROLES.USER;
+  }
+};
+
+// 检查是否是管理员
+export const isAdmin = async (uid) => {
+  const role = await getUserRole(uid);
+  return role === ROLES.ADMIN;
+};
+
+export const getAllUsers = async () => {
+  try {
+    const snapshot = await get(ref(db, 'profiles'));
+    if (!snapshot.exists()) return [];
+    
+    const profiles = snapshot.val();
+    const users = [];
+    
+    for (const [id, data] of Object.entries(profiles)) {
+      if (id !== 'nextId') {
+        users.push({
+          id: parseInt(id),
+          ...data
+        });
+      }
+    }
+    
+    return users;
+  } catch (error) {
+    console.error('获取用户列表失败:', error);
+    throw error;
+  }
+};
+
+// 更新用户角色（仅管理员可调用）
+export const updateUserRole = async (adminUid, targetUid, newRole) => {
+  const isAdminUser = await isAdmin(adminUid);
+  if (!isAdminUser) {
+    throw new Error('无权执行此操作');
+  }
+
+  if (!Object.values(ROLES).includes(newRole)) {
+    throw new Error('无效的角色');
+  }
+
+  const targetProfile = await getProfileByUid(targetUid);
+  if (!targetProfile) {
+    throw new Error('目标用户不存在');
+  }
+
+  const updates = {};
+  updates[`profiles/${targetProfile.id}/role`] = newRole;
+
+  await update(ref(db), updates);
+  return true;
+};
+
+export const addAnnouncement = async (adminUid, title, content, priority = 'normal') => {
+  const isAdminUser = await isAdmin(adminUid);
+  if (!isAdminUser) {
+    throw new Error('无权发布公告');
+  }
+
+  if (!title.trim() || !content.trim()) {
+    throw new Error('标题和内容不能为空');
+  }
+
+  try {
+    // 获取公告列表
+    const announcementsRef = ref(db, 'announcements');
+    const snapshot = await get(announcementsRef);
+    
+    let announcements = [];
+    if (snapshot.exists()) {
+      announcements = Object.values(snapshot.val());
+    }
+
+    const newAnnouncement = {
+      id: Date.now(),
+      title: title.trim(),
+      content: content.trim(),
+      author: adminUid,
+      priority,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    // 添加到公告列表
+    announcements.unshift(newAnnouncement);
+    
+    // 只保留最新的50条公告
+    if (announcements.length > 50) {
+      announcements = announcements.slice(0, 50);
+    }
+
+    // 保存到数据库
+    await set(announcementsRef, announcements);
+    
+    return newAnnouncement;
+  } catch (error) {
+    console.error('发布公告失败:', error);
+    throw new Error('发布公告失败: ' + error.message);
+  }
+};
+
+export const getAnnouncements = async (limit = 20) => {
+  try {
+    const announcementsRef = ref(db, 'announcements');
+    const snapshot = await get(announcementsRef);
+    
+    if (!snapshot.exists()) {
+      return [];
+    }
+
+    let announcements = Object.values(snapshot.val());
+    
+    // 按时间倒序排序
+    announcements.sort((a, b) => b.createdAt - a.createdAt);
+    
+    // 限制数量
+    if (limit && announcements.length > limit) {
+      announcements = announcements.slice(0, limit);
+    }
+    
+    return announcements;
+  } catch (error) {
+    console.error('获取公告失败:', error);
+    throw new Error('获取公告失败: ' + error.message);
+  }
+};
+
+export const deleteAnnouncement = async (adminUid, announcementId) => {
+  const isAdminUser = await isAdmin(adminUid);
+  if (!isAdminUser) {
+    throw new Error('无权删除公告');
+  }
+
+  try {
+    const announcementsRef = ref(db, 'announcements');
+    const snapshot = await get(announcementsRef);
+    
+    if (!snapshot.exists()) {
+      throw new Error('公告不存在');
+    }
+
+    let announcements = Object.values(snapshot.val());
+    const initialLength = announcements.length;
+    
+    // 过滤掉要删除的公告
+    announcements = announcements.filter(ann => ann.id !== announcementId);
+    
+    if (announcements.length === initialLength) {
+      throw new Error('公告不存在');
+    }
+
+    // 保存更新后的列表
+    await set(announcementsRef, announcements);
+    
+    return true;
+  } catch (error) {
+    console.error('删除公告失败:', error);
+    throw error;
+  }
+};
+
+// 简化函数名
+export const getLastSeen = async (uid) => {
+  try {
+    const id = await getNumericIdByUid(uid);
+    if (!id) return 0;
+    
+    const snap = await get(ref(db, `profiles/${id}/lastSeenAnnounce`));
+    return snap.exists() ? snap.val() : 0;
+  } catch (error) {
+    console.error('获取时间失败:', error);
+    return 0;
+  }
+};
+
+// 更新用户最后查看公告的时间
+export const updateLastSeen = async (uid) => {
+  try {
+    const id = await getNumericIdByUid(uid);
+    if (!id) return;
+    
+    await set(ref(db, `profiles/${id}/lastSeenAnnounce`), Date.now());
+  } catch (error) {
+    console.error('更新时间失败:', error);
+  }
+};
+
+// 检查是否有新公告
+export const hasNewAnnounce = async (uid) => {
+  try {
+    const [lastSeen, announces] = await Promise.all([
+      getLastSeen(uid),
+      getAnnouncements(1)
+    ]);
+    
+    if (announces.length === 0) return false;
+    
+    const latest = announces[0];
+    return latest.createdAt > lastSeen;
+  } catch (error) {
+    console.error('检查新公告失败:', error);
+    return false;
+  }
+};
+
 // 调试函数
 export async function debugUserProfile(uid) {
   console.log('=== 调试用户档案 ===');

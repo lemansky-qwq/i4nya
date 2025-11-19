@@ -16,6 +16,13 @@ export default function Profile() {
   const [currentUser, setCurrentUser] = useState(null);
   const [friendStatus, setFriendStatus] = useState('loading');
   const [friendActionLoading, setFriendActionLoading] = useState(false);
+  const [userRole, setUserRole] = useState('user');
+
+  useEffect(() => {
+  if (profile) {
+    setUserRole(profile.role || 'user');
+  }
+}, [profile]);
 
   // 获取当前登录用户
   useEffect(() => {
@@ -157,11 +164,23 @@ export default function Profile() {
     <div style={{ maxWidth: 600, margin: '2rem auto', padding: '0 1rem' }}>
       {/* 用户基本信息卡片 */}
       <div className="card" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h1 className="text-primary" style={{ marginBottom: '0.5rem' }}>{profile.nickname}</h1>
-        <p className="text-secondary">
-          用户 ID: {profile.id}
-        </p>
-      </div>
+  <h1 className="text-primary" style={{ marginBottom: '0.5rem' }}>{profile.nickname}</h1>
+  <p className="text-secondary">
+    用户 ID: {profile.id} 
+    {userRole === 'admin' && (
+      <span style={{ 
+        marginLeft: '0.5rem',
+        background: 'var(--warning-color)',
+        color: 'white',
+        padding: '0.2rem 0.5rem',
+        borderRadius: '12px',
+        fontSize: '0.7rem'
+      }}>
+        管理员
+      </span>
+    )}
+  </p>
+</div>
 
       {/* 好友功能按钮 - 如果不是自己的资料页 */}
       {currentUser && profile && currentUser.uid !== profile.uid && (
