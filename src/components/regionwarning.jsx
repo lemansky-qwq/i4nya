@@ -1,64 +1,62 @@
 import { useState, useEffect } from 'react';
-import './RegionWarning.css';
+import './regionwarning.css';
 
 const RegionWarning = () => {
-  const [networkStatus, setNetworkStatus] = useState('checking');
-  const [authStatus, setAuthStatus] = useState('unknown');
+  const [showWarning, setShowWarning] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    checkNetworkStatus();
+    checkRegion();
   }, []);
 
-  const checkNetworkStatus = async () => {
+  const checkRegion = async () => {
     try {
-      // 测试基础连接
-      const startTime = Date.now();
-      await fetch('https://firestore.googleapis.com/$discovery/rest?version=v1');
-      const endTime = Date.now();
+      // 设置超时，避免长时间等待
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      if (endTime - startTime > 3000) {
-        setNetworkStatus('slow');
-      } else {
-        setNetworkStatus('normal');
+      const response = await fetch('https://ipapi.co/country/', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const country = await response.text();
+        if (country === 'CN') {
+          setShowWarning(true);
+        }
       }
-
-      // 测试认证服务
-      try {
-        await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=test', {
-          method: 'POST',
-          mode: 'no-cors'
-        });
-        setAuthStatus('available');
-      } catch {
-        setAuthStatus('unavailable');
-      }
-
     } catch (error) {
-      setNetworkStatus('unstable');
+      // 如果请求失败，可能是网络问题，也显示提示
+      if (error.name !== 'AbortError') {
+        setShowWarning(true);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getWarningMessage = () => {
-    if (authStatus === 'unavailable') {
-      return '⚠️ 登录服务暂时不可用，但您可以浏览公开内容';
-    }
-    if (networkStatus === 'slow') {
-      return '🌐 网络连接较慢，部分功能可能加载延迟';
-    }
-    if (networkStatus === 'unstable') {
-      return '📡 网络连接不稳定，建议检查网络设置';
-    }
-    return null;
-  };
-
-  const message = getWarningMessage();
-  if (!message) return null;
+  if (isLoading || !showWarning) return null;
 
   return (
     <div className="region-warning">
       <div className="warning-content">
-        <span>{message}</span>
-        <button onClick={() => setNetworkStatus('normal')} className="close-warning">
+        <div className="warning-icon">🌐</div>
+        <div className="warning-text">
+          <strong>网络提示</strong>
+          <span>由于网络环境，部分功能可能加载较慢。建议：</span>
+          <div className="suggestions">
+            • 使用 VPN 获得更好体验
+            • 耐心等待资源加载
+            • 刷新页面重试
+          </div>
+        </div>
+        <button 
+          onClick={() => setShowWarning(false)} 
+          className="close-warning"
+          title="关闭提示"
+        >
           ×
         </button>
       </div>
