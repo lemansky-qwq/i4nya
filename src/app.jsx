@@ -27,6 +27,8 @@ import Announcements from './pages/announcements';
 import Alert from './components/Alert';
 import ChatPage from './pages/chat';
 import Giscus from './pages/giscus';
+import LinkAccount from './pages/link-account';
+import GitHubCallback from './pages/githubcallback';
 
 import './components/theme.css';
 
@@ -156,6 +158,8 @@ export default function App() {
 		  <Route path="/announcements" element={<Announcements />} />
 		  <Route path="/chat" element={<ChatPage />} />
 		  <Route path="/giscus" element={<Giscus />} />
+      <Route path="/link-account" element={<LinkAccount />} />
+      <Route path="/auth/github/callback" element={<GitHubCallback />} />
         </Routes>
       </div>
     </>
