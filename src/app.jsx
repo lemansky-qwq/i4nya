@@ -136,8 +136,8 @@ export default function App() {
     <>
       <Navbar handleChangeTheme={handleChangeTheme} user={user} />
       <div className="container">
-		<Alert />
 		<RegionWarning />
+		<Alert />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />

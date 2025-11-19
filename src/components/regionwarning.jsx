@@ -39,14 +39,17 @@ const RegionWarning = () => {
   const handleConfirm = () => {
     setUserChoice('confirmed');
     setShowBlock(false);
+    // 可以在这里保存用户选择到本地存储
+    localStorage.setItem('regionWarningConfirmed', 'true');
   };
 
-  const handleCancel = () => {
-    setUserChoice('cancelled');
-    setShowBlock(false);
-    // 可以在这里重定向到其他页面
-    // window.location.href = 'https://example.com';
-  };
+  // 检查用户是否已经确认过（从本地存储）
+  useEffect(() => {
+    const hasConfirmed = localStorage.getItem('regionWarningConfirmed');
+    if (hasConfirmed === 'true') {
+      setUserChoice('confirmed');
+    }
+  }, []);
 
   // 如果用户已经确认过，或者正在加载，或者不在CN，就不显示
   if (userChoice === 'confirmed' || isLoading || !showBlock) {
@@ -137,9 +140,6 @@ const RegionWarning = () => {
         </div>
 
         <div className="region-block-actions">
-          <button onClick={handleCancel} className="cancel-btn">
-            取消访问
-          </button>
           <button onClick={handleConfirm} className="confirm-btn">
             仍要访问
           </button>
