@@ -11,7 +11,7 @@ import About from './pages/about';
 import Games from './pages/games/games';
 import GameClick from './pages/games/gameclick';
 import NotFound from './pages/notfound';
-import Navbar from './components/navbar'; // 确保这行存在且路径正确
+import Navbar from './components/navbar';
 import JumpGame from './pages/games/jump';
 import Game2048 from './pages/games/2048';
 import Login from './pages/login';
@@ -27,6 +27,7 @@ import Announcements from './pages/announcements';
 import Alert from './components/Alert';
 import ChatPage from './pages/chat';
 import Giscus from './pages/giscus';
+import RegionWarning from './components/regionwarning';
 
 import './components/theme.css';
 
@@ -136,6 +137,7 @@ export default function App() {
       <Navbar handleChangeTheme={handleChangeTheme} user={user} />
       <div className="container">
 		<Alert />
+		<RegionWarning />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />

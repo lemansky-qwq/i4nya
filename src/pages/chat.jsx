@@ -410,7 +410,7 @@ const checkUserRateLimit = async (userId) => {
                 title={`查看 ${message.displayName} 的主页`}
               >
                 {message.displayName}
-                {isAdmin && message.userId !== user.uid && ' (他人)'}
+                {isAdmin && message.userId !== user.uid}
               </span>
               <span className="message-time">
                 {formatTime(message.timestamp)}
@@ -425,7 +425,7 @@ const checkUserRateLimit = async (userId) => {
                 onClick={() => deleteMessage(message.id, message.userId)}
                 title={isAdmin && message.userId !== user.uid ? '删除此消息(管理员)' : '删除我的消息'}
               >
-                {isAdmin && message.userId !== user.uid ? '管理删除' : '删除'}
+                {isAdmin && message.userId !== user.uid ? '删除' : '删除'}
               </button>
             )}
           </div>
