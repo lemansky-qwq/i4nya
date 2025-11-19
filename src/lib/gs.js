@@ -29,7 +29,7 @@ export async function save(uid, game, score) {
 }
 
 // 获取排行榜
-export async function top(game, limit = 8) {
+export async function top(game, limit = 5) {
   if (!game) return [];
   
   try {
@@ -56,20 +56,34 @@ export async function top(game, limit = 8) {
       }
     }
     
-    // 按分数排序
     scores.sort((a, b) => b.score - a.score);
-    
-    // 限制数量
-    const topScores = scores.slice(0, limit);
-    
-    // 格式化结果
-    const result = topScores.map(item => ({
-      n: item.nickname,
-      s: item.score,
-      id: item.profileId
-    }));
-    
-    return result;
+
+// 方法1: 包含所有同分用户
+let topScores = [];
+if (scores.length <= limit) {
+  // 如果总数不超过限制，全部包含
+  topScores = scores;
+} else {
+  // 找到第 limit 名的分数
+  const cutoffScore = scores[limit - 1].score;
+  
+  // 包含所有达到这个分数的用户
+  topScores = scores.filter(item => item.score >= cutoffScore);
+  
+  // 如果同分用户太多，可以设置一个最大限制（可选）
+  if (topScores.length > limit * 2) {
+    topScores = topScores.slice(0, limit * 2);
+  }
+}
+
+// 格式化结果
+const result = topScores.map(item => ({
+  n: item.nickname,
+  s: item.score,
+  id: item.profileId
+}));
+
+return result;
   } catch (error) {
     console.error('获取排行榜失败:', error);
     return [];

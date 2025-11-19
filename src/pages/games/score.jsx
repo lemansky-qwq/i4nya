@@ -148,7 +148,7 @@ export default function GameLeaderboards() {
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '2rem 1rem' }}>
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h1 className="text-primary">游戏排行榜</h1>
-        <p className="text-secondary">前8名玩家榜单</p>
+        <p className="text-secondary">前 5 名玩家榜单</p>
       </div>
       
       <div style={{ 
