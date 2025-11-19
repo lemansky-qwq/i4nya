@@ -27,7 +27,6 @@ import Announcements from './pages/announcements';
 import Alert from './components/Alert';
 import ChatPage from './pages/chat';
 import Giscus from './pages/giscus';
-import RegionWarning from './components/regionwarning';
 
 import './components/theme.css';
 
@@ -136,7 +135,6 @@ export default function App() {
     <>
       <Navbar handleChangeTheme={handleChangeTheme} user={user} />
       <div className="container">
-		<RegionWarning />
 		<Alert />
         <Routes>
           <Route path="/" element={<Home />} />
