@@ -47,7 +47,8 @@ export default function Navbar({ handleChangeTheme, user }) {
         <Link to="/about" className="nav-link">关于</Link>
 		<Link to="/chat" className="nav-link">聊天室</Link>
         <Link to="/games" className="nav-link">小游戏</Link>
-		<Link to="/friends">好友列表</Link>
+		<Link to="/math" className="nav-link">数学工具</Link>
+		<Link to="/friends" className="nav-link">好友列表</Link>
       </div>
 
       <div className="navbar-right">

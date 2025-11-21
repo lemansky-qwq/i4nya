@@ -50,7 +50,7 @@ export default function GameClick() {
   return (
     <div style={{ maxWidth: 600, margin: '2rem auto', padding: '0 1rem', textAlign: 'center' }}>
       <div className="card">
-        <h1 className="text-primary">点击游戏 1.0</h1>
+        <h1 className="text-primary">点击游戏 v1.1</h1>
         
         {user && personalBest > 0 && (
           <p className="text-secondary" style={{marginBottom: '1rem' }}>
