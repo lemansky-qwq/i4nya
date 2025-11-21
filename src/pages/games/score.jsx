@@ -30,7 +30,7 @@ useEffect(() => {
       
       for (const target of jumpTargets) {
         // 这里应该传目标数字，比如 128, 256 等
-        const leaderboard = await getJumpLeaderboard(target, 3);
+        const leaderboard = await getJumpLeaderboard(target, 5);
         jumpLeaderboards[target] = leaderboard;
       }
       
