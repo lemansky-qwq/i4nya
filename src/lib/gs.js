@@ -76,29 +76,39 @@ export async function getJumpLeaderboard(target, limit = 5) {
     // 按时间排序（时间短的在前）
     jumps.sort((a, b) => a.time - b.time);
     
-    // 方法1: 包含所有同时间用户
-    let topJumps = [];
-    if (jumps.length <= limit) {
-      // 如果总数不超过限制，全部包含
-      topJumps = jumps;
-    } else {
-      // 找到第 limit 名的时间
-      const cutoffTime = jumps[limit - 1].time;
+    // 处理排名逻辑 - 同时间同名次
+    let rankedJumps = [];
+    let currentRank = 1;
+    let previousTime = null;
+    
+    for (let i = 0; i < jumps.length; i++) {
+      const currentTime = jumps[i].time;
       
-      // 包含所有达到这个时间的用户
-      topJumps = jumps.filter(item => item.time <= cutoffTime);
-      
-      // 如果同时间用户太多，可以设置一个最大限制（可选）
-      if (topJumps.length > limit * 2) {
-        topJumps = topJumps.slice(0, limit * 2);
+      if (previousTime !== null && currentTime === previousTime) {
+        // 同时间时使用相同的排名
+        rankedJumps.push({
+          ...jumps[i],
+          rank: currentRank - 1
+        });
+      } else {
+        rankedJumps.push({
+          ...jumps[i],
+          rank: currentRank
+        });
+        currentRank++;
+        previousTime = currentTime;
       }
     }
+    
+    // 取前 limit 名（按排名）
+    const topJumps = rankedJumps.filter(item => item.rank <= limit);
     
     // 格式化结果
     const result = topJumps.map(item => ({
       n: item.nickname,
       t: item.time, // 时间（秒）
-      id: item.profileId
+      id: item.profileId,
+      rank: item.rank
     }));
 
     return result;
