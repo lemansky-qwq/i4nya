@@ -38,7 +38,7 @@ export async function getJumpRecords(uid, game) {
 }
 
 // 在 gs.js 中修复 getJumpLeaderboard 函数
-export async function getJumpLeaderboard(target, limit = 3) {
+export async function getJumpLeaderboard(target, limit = 5) {
   if (!target) return [];
   
   try {
@@ -76,16 +76,32 @@ export async function getJumpLeaderboard(target, limit = 3) {
     // 按时间排序（时间短的在前）
     jumps.sort((a, b) => a.time - b.time);
     
-    // 取前 limit 名
-    const topJumps = jumps.slice(0, limit);
+    // 方法1: 包含所有同时间用户
+    let topJumps = [];
+    if (jumps.length <= limit) {
+      // 如果总数不超过限制，全部包含
+      topJumps = jumps;
+    } else {
+      // 找到第 limit 名的时间
+      const cutoffTime = jumps[limit - 1].time;
+      
+      // 包含所有达到这个时间的用户
+      topJumps = jumps.filter(item => item.time <= cutoffTime);
+      
+      // 如果同时间用户太多，可以设置一个最大限制（可选）
+      if (topJumps.length > limit * 2) {
+        topJumps = topJumps.slice(0, limit * 2);
+      }
+    }
     
     // 格式化结果
-    return topJumps.map((item, index) => ({
+    const result = topJumps.map(item => ({
       n: item.nickname,
       t: item.time, // 时间（秒）
-      id: item.profileId,
-      rank: index + 1
+      id: item.profileId
     }));
+
+    return result;
   } catch (error) {
     console.error('获取跳跃排行榜失败:', error);
     return [];
