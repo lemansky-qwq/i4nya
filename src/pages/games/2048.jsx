@@ -78,7 +78,7 @@ const formatTime = (milliseconds) => {
   const totalSeconds = Math.floor(milliseconds / 1000);
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
-  const ms = Math.floor((milliseconds % 1000) / 1); // 只取前2位毫秒
+  const ms = Math.floor((milliseconds % 1000) / 1); // 只取前3位毫秒
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
 };
 
