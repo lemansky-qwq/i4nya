@@ -1,67 +1,84 @@
+// score.jsx 完整修复版本
 import { useState, useEffect } from 'react';
-import { top } from '../../lib/gs';
+import { top, getJumpLeaderboard } from '../../lib/gs';
 import { Link } from 'react-router-dom';
 
 export default function GameLeaderboards() {
   const [click, setClick] = useState([]);
-  const [jump, setJump] = useState([]);
+  const [jump, setJump] = useState([]); // 跳一跳榜单
+  const [jump2048, setJump2048] = useState({}); // 2048目标记录
   const [f2048, setF2048] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadLeaderboards = async () => {
-      setLoading(true);
-      try {
-        const [c, j, f] = await Promise.all([
-          top('click'), 
-          top('jump'), 
-          top('2048')
-        ]);
-        setClick(c); 
-        setJump(j); 
-        setF2048(f);
-      } catch (error) {
-        console.error('加载排行榜失败:', error);
-      } finally {
-        setLoading(false);
+  // 在 score.jsx 中修复调用 getJumpLeaderboard 的部分
+useEffect(() => {
+  const loadLeaderboards = async () => {
+    setLoading(true);
+    try {
+      const [c, j, f] = await Promise.all([
+        top('click'), 
+        top('jump'), // 跳一跳榜单
+        top('2048')
+      ]);
+      setClick(c); 
+      setJump(j); // 设置跳一跳数据
+      setF2048(f);
+      
+      // 加载2048每个跳跃目标的排行榜
+      const jumpTargets = [128, 256, 512, 1024, 2048, 4096, 8192, 16384];
+      const jumpLeaderboards = {};
+      
+      for (const target of jumpTargets) {
+        // 这里应该传目标数字，比如 128, 256 等
+        const leaderboard = await getJumpLeaderboard(target, 3);
+        jumpLeaderboards[target] = leaderboard;
       }
-    };
+      
+      setJump2048(jumpLeaderboards);
+    } catch (error) {
+      console.error('加载排行榜失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadLeaderboards();
-  }, []);
+  loadLeaderboards();
+}, []);
 
-  // 处理排名逻辑，相同分数显示相同名次
+  // 处理排名逻辑
   const processRankings = (data) => {
     if (!data || data.length === 0) return [];
     
     let rankedData = [];
     let currentRank = 1;
     let previousScore = null;
-    let skipCount = 0;
     
     for (let i = 0; i < data.length; i++) {
       const currentScore = data[i].s;
       
-      // 如果当前分数与前一个分数相同，则名次相同
       if (previousScore !== null && currentScore === previousScore) {
         rankedData.push({
           ...data[i],
-          rank: currentRank - 1 // 使用前一个名次
+          rank: currentRank - 1
         });
-        skipCount++;
       } else {
         rankedData.push({
           ...data[i],
           rank: currentRank
         });
-	    currentRank++;
+        currentRank++;
         previousScore = currentScore;
-        currentRank += skipCount;
-        skipCount = 0;
       }
     }
     
     return rankedData;
+  };
+
+  // 格式化时间显示
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const Leaderboard = (title, data, gameType) => {
@@ -144,11 +161,118 @@ export default function GameLeaderboards() {
     );
   };
 
+// 在 score.jsx 中修改 Jump2048Leaderboard 组件
+// 2048跳跃排行榜组件
+const Jump2048Leaderboard = () => {
+  const jumpTargets = [128, 256, 512, 1024, 2048, 4096, 8192, 16384];
+  
+  // 添加调试信息
+  useEffect(() => {
+    if (!loading) {
+      console.log('跳一跳榜单数据:', jump);
+      console.log('2048目标记录数据:', jump2048);
+    }
+  }, [loading, jump, jump2048]);
+  
+  return (
+    <div className="card">
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '1rem',
+        borderBottom: '2px solid var(--primary-color)',
+        paddingBottom: '0.5rem'
+      }}>
+        <h2 className="text-primary" style={{ margin: 0 }}>2048 目标记录</h2>
+        <Link 
+          to="/games/2048"
+          className="btn btn-primary"
+          style={{ textDecoration: 'none', fontSize: '0.9rem' }}
+        >
+          去游戏
+        </Link>
+      </div>
+      
+      {loading ? (
+        <p className="text-secondary" style={{ textAlign: 'center' }}>加载中...</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {jumpTargets.map(target => {
+            const targetData = jump2048[target];
+            console.log(`目标 ${target} 数据:`, targetData); // 调试每个目标的数据
+            
+            return (
+              <div key={target} style={{ 
+                padding: '1rem',
+                background: 'var(--input-bg)',
+                border: '1px solid var(--card-border)',
+                borderRadius: '8px'
+              }}>
+                <h3 className="text-primary" style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>
+                  达成 {target} 最快时间
+                </h3>
+                {targetData && targetData.length > 0 ? (
+                  <ol style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                    {targetData.map((player, index) => (
+                      <li key={index} style={{ 
+                        margin: '0.5rem 0',
+                        padding: '0.5rem',
+                        background: player.rank <= 3 ? 'var(--warning-bg)' : 'transparent',
+                        border: player.rank <= 3 ? '1px solid var(--warning-color)' : '1px solid transparent',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{
+                            width: '25px',
+                            height: '25px',
+                            borderRadius: '50%',
+                            background: player.rank === 1 ? '#ffd700' : 
+                                       player.rank === 2 ? '#c0c0c0' : 
+                                       player.rank === 3 ? '#cd7f32' : 'var(--secondary-color)',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem'
+                          }}>
+                            {player.rank}
+                          </span>
+                          <span className="text-primary" style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                            {player.n}
+                          </span>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div className="text-primary" style={{ fontWeight: 'bold' }}>
+                            {formatTime(player.t)}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-secondary" style={{ textAlign: 'center', margin: 0 }}>
+                    暂无记录
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '2rem 1rem' }}>
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h1 className="text-primary">游戏排行榜</h1>
-        <p className="text-secondary">前 5 名玩家榜单</p>
+        <p className="text-secondary">前几名玩家榜单</p>
       </div>
       
       <div style={{ 
@@ -157,8 +281,9 @@ export default function GameLeaderboards() {
         gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' 
       }}>
         {Leaderboard('点击', click, 'click')}
-        {Leaderboard('🕹️ 跳一跳', jump, 'jump')}
+        {Leaderboard('🕹️ 跳一跳', jump, 'jump')} {/* 跳一跳榜单 */}
         {Leaderboard('2048', f2048, '2048')}
+        {Jump2048Leaderboard()} {/* 2048目标记录 */}
       </div>
     </div>
   );

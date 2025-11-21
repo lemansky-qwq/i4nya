@@ -3,6 +3,123 @@ import { db } from './firebase';
 import { ref, set, get, update } from 'firebase/database';
 import { getProfileById } from './pu';
 
+// 在 gs.js 中添加 getJumpRecords 函数
+export async function getJumpRecords(uid, game) {
+  if (!uid || !game) return {};
+  
+  try {
+    const numericId = await getNumericIdByUid(uid);
+    if (!numericId) return {};
+    
+    const scoresRef = ref(db, `profiles/${numericId}/scores`);
+    const snap = await get(scoresRef);
+    const scores = snap.val() || {};
+    
+    console.log('用户所有分数记录:', scores); // 调试信息
+    
+    // 过滤出跳跃记录 (jump_ 开头的)
+    const jumpRecords = {};
+    Object.keys(scores).forEach(key => {
+      if (key.startsWith('jump_')) {
+        const target = parseInt(key.replace('jump_', ''));
+        jumpRecords[target] = {
+          time: scores[key],
+          score: 0 // 现在不存储分数了
+        };
+      }
+    });
+    
+    console.log('提取的跳跃记录:', jumpRecords); // 调试信息
+    return jumpRecords;
+  } catch (error) {
+    console.error('获取跳跃记录失败:', error);
+    return {};
+  }
+}
+
+// 在 gs.js 中修复 getJumpLeaderboard 函数
+export async function getJumpLeaderboard(target, limit = 3) {
+  if (!target) return [];
+  
+  try {
+    const profilesRef = ref(db, 'profiles');
+    const snap = await get(profilesRef);
+    
+    if (!snap.exists()) return [];
+    
+    const profiles = snap.val();
+    const jumps = [];
+    
+    console.log(`开始查找目标 ${target} 的记录`); // 调试
+    
+    // 收集所有用户该目标的记录
+    for (const profileId in profiles) {
+      if (profileId === 'nextId') continue;
+      
+      const profile = profiles[profileId];
+      const scoreKey = `jump_${target}`;
+      
+      console.log(`检查用户 ${profileId} 的 ${scoreKey}:`, profile.scores?.[scoreKey]); // 调试
+      
+      // 检查 scores 中是否有 jump_{target} 的记录
+      if (profile.scores && profile.scores[scoreKey] !== undefined) {
+        jumps.push({
+          profileId: parseInt(profileId),
+          time: profile.scores[scoreKey], // 时间（秒）
+          nickname: profile.nickname || '匿名用户'
+        });
+      }
+    }
+    
+    console.log(`目标 ${target} 找到 ${jumps.length} 条记录:`, jumps); // 调试信息
+    
+    // 按时间排序（时间短的在前）
+    jumps.sort((a, b) => a.time - b.time);
+    
+    // 取前 limit 名
+    const topJumps = jumps.slice(0, limit);
+    
+    // 格式化结果
+    return topJumps.map((item, index) => ({
+      n: item.nickname,
+      t: item.time, // 时间（秒）
+      id: item.profileId,
+      rank: index + 1
+    }));
+  } catch (error) {
+    console.error('获取跳跃排行榜失败:', error);
+    return [];
+  }
+}
+
+// 确保 saveJumpRecord 函数也存在
+export async function saveJumpRecord(uid, game, target, time, score) {
+  if (!uid || !game) return false;
+  
+  try {
+    const numericId = await getNumericIdByUid(uid);
+    if (!numericId) return false;
+    
+    // 将跳跃记录存储在 scores 中，格式为 jump_{target}
+    const jumpRef = ref(db, `profiles/${numericId}/scores/jump_${target}`);
+    const currentSnap = await get(jumpRef);
+    
+    console.log(`保存跳跃记录: target=${target}, time=${time}, current=`, currentSnap.val()); // 调试
+    
+    // 如果没有记录或者新时间更短，才保存
+    if (!currentSnap.exists() || time < currentSnap.val()) {
+      await set(jumpRef, time);
+      console.log(`成功保存跳跃记录: jump_${target} = ${time}`);
+      return true;
+    }
+    console.log(`未保存: 已有更优记录 ${currentSnap.val()} < ${time}`);
+    return false;
+  } catch (error) {
+    console.error('保存跳跃记录失败:', error);
+    return false;
+  }
+}
+
 // 保存分数（只保存最高分）
 export async function save(uid, game, score) {
   if (!uid || !game) return false;
@@ -31,7 +148,7 @@ export async function save(uid, game, score) {
 // 获取排行榜
 export async function top(game, limit = 5) {
   if (!game) return [];
-  
+  //if (game == "2048") limit = 8;
   try {
     const profilesRef = ref(db, 'profiles');
     const snap = await get(profilesRef);

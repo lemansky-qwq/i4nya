@@ -74,6 +74,18 @@
   background: #edc22e;
   color: #fff;
 }
+.value-4096 {
+  background: #ecc22e;
+  color: #fff;
+}
+.value-8192 {
+  background: #ebc22e;
+  color: #fff;
+}
+.value-16384 {
+  background: #eac22e;
+  color: #fff;
+}
 
 /* 禁止选中按钮文字 */
 button {
@@ -116,4 +128,298 @@ button {
 .move-button:active {
   background-color: #f48100;
 }
+/* 在 20480.css 文件末尾添加以下样式 */
 
+/* 计时器容器 */
+.timer-section {
+  margin: 15px 0;
+  padding: 15px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+}
+
+.timer-display {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin: 10px 0;
+  font-family: monospace;
+  text-align: center;
+  padding: 10px;
+  background-color: var(--input-bg);
+  border-radius: 6px;
+  border: 1px solid var(--input-border);
+}
+
+.timer-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 15px 0;
+  flex-wrap: wrap;
+}
+
+.timer-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9em;
+  min-width: 100px;
+}
+
+.timer-btn.primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.timer-btn.secondary {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.timer-btn.warning {
+  background-color: var(--warning-color);
+  color: var(--text-primary);
+}
+
+.timer-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.timer-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* 计时器开关 */
+.timer-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: var(--input-bg);
+  border-radius: 6px;
+  border: 1px solid var(--input-border);
+}
+
+.timer-toggle label {
+  color: var(--text-primary);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.timer-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* 跳跃记录样式 */
+.jumps-section {
+  margin: 15px 0;
+  padding: 15px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+}
+
+.jumps-title {
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+  text-align: center;
+  font-size: 1.1em;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.jumps-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.jump-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.jump-item:last-child {
+  border-bottom: none;
+}
+
+.jump-value {
+  font-weight: bold;
+  color: var(--text-primary);
+  font-size: 1.1em;
+}
+
+.jump-time {
+  color: var(--text-secondary);
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.jump-score {
+  color: var(--success-color);
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+/* 游戏暂停遮罩 */
+.game-paused {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 20px 40px;
+  border-radius: 10px;
+  font-size: 1.5em;
+  font-weight: bold;
+  z-index: 100;
+}
+
+/* 游戏网格容器相对定位 */
+.grid-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* 空状态提示 */
+.jumps-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 20px;
+}
+
+/* 新达成目标的动画 */
+.jump-item.new-achievement {
+  animation: highlight 2s ease-in-out;
+  background-color: var(--success-bg);
+  border-left: 4px solid var(--success-color);
+}
+
+@keyframes highlight {
+  0% {
+    background-color: var(--success-color);
+    color: white;
+  }
+  50% {
+    background-color: var(--success-color);
+    color: white;
+  }
+  100% {
+    background-color: var(--success-bg);
+    color: var(--text-primary);
+  }
+}
+
+/* 计时器状态指示器 */
+.timer-status {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.timer-status.running {
+  background-color: var(--success-color);
+  animation: pulse 1.5s infinite;
+}
+
+.timer-status.paused {
+  background-color: var(--warning-color);
+}
+
+.timer-status.stopped {
+  background-color: var(--danger-color);
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .timer-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .timer-btn {
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .jump-item {
+    flex-direction: column;
+    gap: 5px;
+    text-align: center;
+  }
+}
+
+.timer-controls {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin: 15px 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* 方向按钮容器 */
+.direction-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+/* 计时按钮容器 */
+.timer-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 计时按钮样式 */
+.timer-btn.success {
+  background-color: var(--success-color);
+  color: white;
+  border: 1px solid var(--success-color);
+}
+
+.timer-btn.success:hover:not(:disabled) {
+  background-color: #27ae60;
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.timer-btn.success:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
