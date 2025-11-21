@@ -74,10 +74,12 @@ const moveGrid = (grid, direction) => {
 };
 
 // 格式化时间显示
-const formatTime = (seconds) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+const formatTime = (milliseconds) => {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  const ms = Math.floor((milliseconds % 1000) / 1); // 只取前2位毫秒
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
 };
 
 // 跳跃目标值
@@ -97,6 +99,7 @@ const Game2048 = () => {
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [lastMoveTime, setLastMoveTime] = useState(0); // 记录最后一次移动的时间戳
   const [jumps, setJumps] = useState([]);
   const [achievedJumps, setAchievedJumps] = useState(new Set());
 
@@ -115,7 +118,7 @@ const Game2048 = () => {
         const jumpList = [];
         
         Object.keys(jumpRecords).forEach(key => {
-          const target = parseInt(key.replace('target_', ''));
+          const target = parseInt(key.replace('jump_', ''));
           if (JUMP_TARGETS.includes(target)) {
             achieved.add(target);
             jumpList.push({
@@ -138,18 +141,85 @@ const Game2048 = () => {
     return unsubscribe;
   }, []);
 
-  // 计时器逻辑
+  // 高精度计时器逻辑
   useEffect(() => {
-    let interval;
+    let animationFrameId;
+    let lastTimestamp = 0;
+
+    const updateTimer = (timestamp) => {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      
+      const elapsed = timestamp - lastTimestamp;
+      
+      if (elapsed >= 10) { // 每10毫秒更新一次
+        setTime(prevTime => prevTime + elapsed);
+        lastTimestamp = timestamp;
+      }
+      
+      animationFrameId = requestAnimationFrame(updateTimer);
+    };
+
     if (isRunning) {
-      interval = setInterval(() => {
-        setTime(prevTime => prevTime + 1);
-      }, 1000);
+      lastTimestamp = 0;
+      animationFrameId = requestAnimationFrame(updateTimer);
     }
-    return () => clearInterval(interval);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [isRunning]);
 
-  // 暂停并更新
+  // 修改移动处理函数
+  const handleMove = (dir) => {
+  // 如果是计时模式且游戏暂停，但时间还是0（未开始），允许第一次移动
+  if (timerEnabled && !isRunning && time > 0) return;
+  
+  const [newGrid, gained] = moveGrid(grid, dir);
+  if (JSON.stringify(newGrid) !== JSON.stringify(grid)) {
+    setGrid(addRandomNumber(newGrid));
+    const newScore = score + gained;
+    setScore(newScore);
+    
+    if (newScore > highScore) {
+      setHighScore(newScore);
+      localStorage.setItem('2048HighScore', newScore);
+    }
+    
+    // 关键修改：每次有效移动都更新时间戳
+    const currentTime = Date.now();
+    
+    // 如果是计时模式且游戏未开始，开始计时
+    if (timerEnabled && !isRunning && time === 0) {
+      setIsRunning(true);
+      setLastMoveTime(currentTime);
+    } 
+    // 如果游戏已经在进行，更新最后一次移动时间
+    else if (timerEnabled && isRunning) {
+      setLastMoveTime(currentTime);
+    }
+    
+    // 检查是否达成新目标
+    checkNewAchievements(newGrid.flat());
+  }
+};
+
+  // 检查新达成的目标
+  const checkNewAchievements = (currentGrid) => {
+    const currentMax = Math.max(...currentGrid);
+    const newAchievements = JUMP_TARGETS.filter(target => 
+      currentMax >= target && !achievedJumps.has(target)
+    );
+    
+    if (newAchievements.length > 0) {
+      setAchievedJumps(prev => new Set([...prev, ...newAchievements]));
+      // 可以在这里添加达成目标的提示
+      console.log(`达成新目标: ${newAchievements.join(', ')}`);
+    }
+  };
+
+  // 修改暂停并保存函数
   const pauseAndUpdate = async () => {
     if (!user) {
       setMsg('请先登录后保存计时记录');
@@ -183,6 +253,7 @@ const Game2048 = () => {
       
       for (const target of newAchievements) {
         try {
+          // 保存毫秒时间
           const saved = await saveJumpRecord(user.uid, '2048', target, time, score);
           if (saved) {
             updatedCount++;
@@ -212,7 +283,6 @@ const Game2048 = () => {
           }
         } catch (error) {
           console.error(`保存目标 ${target} 失败:`, error);
-          // 继续处理其他目标，不中断整个流程
         }
       }
       
@@ -242,46 +312,23 @@ const Game2048 = () => {
     }
   };
 
-  const handleMove = (dir) => {
-    if (timerEnabled && !isRunning) return;
-    
-    const [newGrid, gained] = moveGrid(grid, dir);
-    if (JSON.stringify(newGrid) !== JSON.stringify(grid)) {
-      setGrid(addRandomNumber(newGrid));
-      const newScore = score + gained;
-      setScore(newScore);
-      
-      if (newScore > highScore) {
-        setHighScore(newScore);
-        localStorage.setItem('2048HighScore', newScore);
-      }
-      
-      // 第一次移动且计时器已启用，开始计时
-      if (timerEnabled && !isRunning && time === 0) {
-        setIsRunning(true);
-      }
-    }
-  };
-
+  // 修改重置游戏函数
   const resetGame = () => {
     setGrid(addRandomNumber(addRandomNumber(generateEmptyGrid())));
     setScore(0);
     setTime(0);
     setIsRunning(false);
+    setLastMoveTime(0);
   };
 
-  const toggleTimer = () => {
-    if (timerEnabled) {
-      setIsRunning(!isRunning);
-    }
-  };
-
+  // 修改启用计时器函数
   const enableTimer = () => {
     // 启用计时模式时重置游戏
     setGrid(addRandomNumber(addRandomNumber(generateEmptyGrid())));
     setScore(0);
     setTime(0);
     setIsRunning(false);
+    setLastMoveTime(0);
     setTimerEnabled(true);
   };
 
@@ -315,6 +362,7 @@ const saveAndRestart = async () => {
         
         for (const target of newAchievements) {
           try {
+            // 保存毫秒时间
             const saved = await saveJumpRecord(user.uid, '2048', target, time, score);
             if (saved) {
               updatedCount++;
@@ -389,6 +437,29 @@ const saveAndRestart = async () => {
       setMsgType('error');
     } finally {
       setLoad(false);
+    }
+  };
+
+  const toggleTimer = () => {
+    if (!timerEnabled) return;
+    
+    if (isRunning) {
+      // 暂停游戏
+      setIsRunning(false);
+      setMsg('游戏已暂停');
+      setMsgType('info');
+    } else {
+      // 继续游戏
+      if (time === 0) {
+        // 如果时间是0，说明还没开始，需要第一次移动来启动
+        setMsg('请进行一次移动来开始计时');
+        setMsgType('info');
+      } else {
+        setIsRunning(true);
+        setMsg('游戏继续');
+        setMsgType('success');
+        setTimeout(() => setMsg(''), 1000);
+      }
     }
   };
 
@@ -512,28 +583,28 @@ const saveAndRestart = async () => {
           <button 
             onClick={() => handleMove('ArrowUp')} 
             className="btn btn-primary"
-            disabled={timerEnabled && !isRunning}
+            disabled={timerEnabled && !isRunning && time > 0}
           >
             上
           </button>
           <button 
             onClick={() => handleMove('ArrowLeft')} 
             className="btn btn-primary"
-            disabled={timerEnabled && !isRunning}
+            disabled={timerEnabled && !isRunning && time > 0}
           >
             左
           </button>
           <button 
             onClick={() => handleMove('ArrowRight')} 
             className="btn btn-primary"
-            disabled={timerEnabled && !isRunning}
+            disabled={timerEnabled && !isRunning && time > 0}
           >
             右
           </button>
           <button 
             onClick={() => handleMove('ArrowDown')} 
             className="btn btn-primary"
-            disabled={timerEnabled && !isRunning}
+            disabled={timerEnabled && !isRunning && time > 0}
           >
             下
           </button>

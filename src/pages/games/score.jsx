@@ -75,11 +75,13 @@ useEffect(() => {
   };
 
   // 格式化时间显示
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  const formatTime = (milliseconds) => {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  const ms = milliseconds % 1000;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+};
 
   const Leaderboard = (title, data, gameType) => {
     const rankedData = processRankings(data);
