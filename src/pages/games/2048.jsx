@@ -549,7 +549,6 @@ const saveAndRestart = async () => {
                   <div key={index} className={`jump-item ${jump.isNew ? 'new-achievement' : ''}`}>
                     <span className="jump-value">{jump.value}</span>
                     <span className="jump-time">用时: {jump.displayTime}</span>
-                    <span className="jump-score">分数: {jump.score}</span>
                   </div>
                 ))
               ) : (
