@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useNavigate, Link } from 'react-router-dom';
-import GitHubOAuth from '../components/GitHubOAuth';
+import GitHubOAuth from '../components/GithubOAuth';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_TIME = 15 * 60 * 1000;

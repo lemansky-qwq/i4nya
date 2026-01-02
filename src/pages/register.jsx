@@ -12,7 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useNavigate, Link } from 'react-router-dom';
-import GitHubOAuth from '../components/GitHubOAuth';
+import GitHubOAuth from '../components/GithubOAuth';
 
 const ALLOWED_DOMAINS = ['gmail.com','163.com','126.com','qq.com','outlook.com','hotmail.com','yahoo.com','icloud.com','sina.com','sohu.com'];
 const REGISTER_COOLDOWN = 2 * 60 * 1000;
@@ -199,6 +199,9 @@ export default function Register() {
     <div style={{ maxWidth: 400, margin: '2rem auto', padding: '0 1rem', textAlign: 'center' }}>
       <div className="card">
         <h2 className="text-primary">注册</h2>
+        <p style={{fontSize:'0.7em', marginTop:30}}>
+             新用户提示注册成功请立即刷新页面，否则可能无法写入数据！
+          </p>
 
         {/* 账户关联表单 */}
         {linkingEmail && (
@@ -382,6 +385,7 @@ export default function Register() {
           <p className="text-muted" style={{fontSize:'0.8em', marginTop:30}}>
             支持邮箱：{ALLOWED_DOMAINS.slice(0,6).join('、')} 等
           </p>
+          
         )}
       </div>
     </div>

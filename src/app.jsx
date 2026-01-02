@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/app.jsx
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -29,7 +29,7 @@ import ChatPage from './pages/chat';
 import Giscus from './pages/giscus';
 import Mathma from './pages/math';
 import LinkAccount from './pages/link-account';
-import GitHubCallback from './pages/githubcallback';
+import GitHubCallback from './pages/GithubCallback';
 
 import './components/theme.css';
 
