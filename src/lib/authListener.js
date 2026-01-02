@@ -1,35 +1,30 @@
-// src/lib/authListener.js   或直接放在 App.jsx 的 useEffect 里
-
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
-import { createProfile } from './pu';
-import { useNavigate } from 'react-router-dom';
+import { getNumericIdByUid, createProfile } from './pu';
 
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+export const initAuthListener = () => {
+  return onAuthStateChanged(auth, async (user) => {
     if (!user) return;
 
     try {
       const hasProfile = await getNumericIdByUid(user.uid);
+      if (hasProfile) return;
 
-      if (!hasProfile) {
-        const nickname =
-          user.displayName ||
-          user.email?.split('@')[0] ||
-          'user';
+      // GitHub-safe 昵称生成
+      const nickname =
+        user.displayName ||
+        user.email?.split('@')[0] ||
+        user.providerData[0]?.providerId ||
+        'user';
 
-        const numericId = await createProfile(user.uid, nickname);
+      await createProfile(user.uid, nickname);
 
-        console.log('用户 profile 已补写', {
-          uid: user.uid,
-          provider: user.providerData[0]?.providerId,
-          numericId
-        });
-      }
+      console.log('profile 创建完成', {
+        uid: user.uid,
+        provider: user.providerData[0]?.providerId
+      });
     } catch (err) {
-      console.error('检查/创建 profile 失败', err);
+      console.error('创建 profile 失败', err, user);
     }
   });
-
-  return unsubscribe;
-}, []);
+};

@@ -30,6 +30,7 @@ export default function Register() {
 
   const googleProvider = new GoogleAuthProvider();
   const githubProvider = new GithubAuthProvider();
+  githubProvider.addScope('user:email');
 
   // 注册冷却
   useEffect(() => {

@@ -116,7 +116,12 @@ export default function Login() {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-
+      if (providerName === 'GitHub') {
+        const githubUsername = result.additionalUserInfo?.username;
+        if (githubUsername) {
+          localStorage.setItem('pendingNickname', githubUsername);
+        }
+      }
       localStorage.removeItem('loginAttempts');
       localStorage.removeItem('loginLockUntil');
 

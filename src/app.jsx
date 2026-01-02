@@ -1,11 +1,11 @@
 // src/app.jsx
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './lib/firebase';
 import { createProfile, getNumericIdByUid, updateLastLogin } from './lib/pu';
 
-// 确保所有组件都正确导入
+// 页面组件
 import Home from './pages/home';
 import About from './pages/about';
 import Games from './pages/games/games';
@@ -39,7 +39,6 @@ export default function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'auto');
   const [user, setUser] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
-  const navigate = useNavigate();
 
   const detectSystemTheme = useCallback(() => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -56,67 +55,53 @@ export default function App() {
     applyTheme(theme);
   }, [theme, applyTheme]);
 
-  // 认证逻辑
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      console.log('认证状态变化:', currentUser);
-      
-      if (!currentUser) {
-        setUser(null);
-        setIsInitializing(false);
-        return;
-      }
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    console.log('认证状态变化:', currentUser);
 
-      // 检查邮箱验证
-      if (!currentUser.emailVerified) {
-        console.log('用户邮箱未验证');
-        setUser(null);
-        setIsInitializing(false);
-        return;
-      }
+    if (!currentUser) {
+      setUser(null);
+      setIsInitializing(false);
+      return;
+    }
 
-      console.log('用户已验证，UID:', currentUser.uid);
-      
-      try {
-        // 立即设置用户状态，让导航栏显示已登录
-        setUser(currentUser);
-        
-        // 然后在后台处理档案创建
-        let numericId = await getNumericIdByUid(currentUser.uid);
-        console.log('获取到的 numericId:', numericId);
+    setUser(currentUser);
 
-        if (!numericId) {
-          console.log('未找到 profile，开始创建...');
-          
-          let nickname = currentUser.displayName;
-          if (!nickname) {
-            nickname = localStorage.getItem('pendingNickname');
-            localStorage.removeItem('pendingNickname');
-          }
-          if (!nickname) {
-            nickname = currentUser.email?.split('@')[0] || `用户${Math.floor(Math.random() * 9999)}`;
-          }
+    try {
+      let numericId = await getNumericIdByUid(currentUser.uid);
+      console.log('numericId:', numericId);
 
-          numericId = await createProfile(currentUser.uid, nickname);
-          console.log('Profile 创建成功，ID:', numericId);
+      if (!numericId) {
+        // 只读一次 pendingNickname
+        const pendingNickname = localStorage.getItem('pendingNickname');
+        if (pendingNickname) {
+          localStorage.removeItem('pendingNickname');
         }
 
-        // 更新最后登录时间
-        if (numericId) {
-          await updateLastLogin(numericId);
-        }
+        const nickname =
+          pendingNickname ||
+          currentUser.providerData?.[0]?.displayName ||
+          currentUser.displayName ||
+          currentUser.email?.split('@')[0] ||
+          `用户${Math.floor(Math.random() * 9999)}`;
 
-        setIsInitializing(false);
-
-      } catch (err) {
-        console.error('处理用户数据失败:', err);
-        // 即使档案创建失败，也保持用户登录状态
-        setIsInitializing(false);
+        numericId = await createProfile(currentUser.uid, nickname);
+        console.log('Profile 创建成功:', numericId);
       }
-    });
 
-    return () => unsubscribe();
-  }, []);
+      if (numericId) {
+        await updateLastLogin(numericId);
+      }
+    } catch (err) {
+      console.error('处理用户数据失败:', err);
+    }
+
+    setIsInitializing(false);
+  });
+
+  return () => unsubscribe();
+}, []);
+
 
   const handleChangeTheme = useCallback((selectedTheme) => {
     setTheme(selectedTheme);
@@ -124,8 +109,8 @@ export default function App() {
 
   if (isInitializing) {
     return (
-      <div style={{ 
-        textAlign: 'center', 
+      <div style={{
+        textAlign: 'center',
         paddingTop: '100px',
         minHeight: '100vh'
       }}>
@@ -138,7 +123,7 @@ export default function App() {
     <>
       <Navbar handleChangeTheme={handleChangeTheme} user={user} />
       <div className="container">
-		<Alert />
+        <Alert />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
@@ -150,18 +135,18 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/profile/:id" element={<Profile />} />
           <Route path="/games/score" element={<Leaderboard />} />
-		  <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<NotFound />} />
-		  <Route path="/forgot-password" element={<ForgotPassword />} />
-		  <Route path="/friends" element={<Friends />} />
-		  <Route path="/friends/requests" element={<FriendRequests />} />
-		  <Route path="/admin" element={<Admin />} />
-		  <Route path="/announcements" element={<Announcements />} />
-		  <Route path="/chat" element={<ChatPage />} />
-		  <Route path="/giscus" element={<Giscus />} />
-		  <Route path="/math" element={<Mathma />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/friends" element={<Friends />} />
+          <Route path="/friends/requests" element={<FriendRequests />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/announcements" element={<Announcements />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/giscus" element={<Giscus />} />
+          <Route path="/math" element={<Mathma />} />
           <Route path="/link-account" element={<LinkAccount />} />
           <Route path="/auth/github/callback" element={<GitHubCallback />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </>
