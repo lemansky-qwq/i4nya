@@ -29,7 +29,7 @@ import ChatPage from './pages/chat';
 import Giscus from './pages/giscus';
 import Mathma from './pages/math';
 import LinkAccount from './pages/link-account';
-import GitHubCallback from './pages/GithubCallback';
+import GitHubCallback from './pages/githubcallback';
 
 import './components/theme.css';
 

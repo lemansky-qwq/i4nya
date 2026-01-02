@@ -12,7 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useNavigate, Link } from 'react-router-dom';
-import GitHubOAuth from '../components/GithubOAuth';
+import GitHubOAuth from '../components/GitHubOAuth';
 
 const ALLOWED_DOMAINS = ['gmail.com','163.com','126.com','qq.com','outlook.com','hotmail.com','yahoo.com','icloud.com','sina.com','sohu.com'];
 const REGISTER_COOLDOWN = 2 * 60 * 1000;
