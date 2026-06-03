@@ -30,6 +30,12 @@ import Giscus from './pages/giscus';
 import Mathma from './pages/math';
 import LinkAccount from './pages/link-account';
 import GitHubCallback from './pages/githubcallback';
+import Editor from './pages/editor';
+import Fresco from './pages/fresco/songlist';
+import Diff from './pages/fresco/diff';
+import Fplay from './pages/fresco/fplay';
+import Board from './pages/fresco/board';
+import FrescoAbout from './pages/fresco/about';
 
 import './components/theme.css';
 
@@ -140,6 +146,12 @@ useEffect(() => {
           <Route path="/friends" element={<Friends />} />
           <Route path="/friends/requests" element={<FriendRequests />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/editor" element={<Editor />} />
+          <Route path="/fresco/:songId/:difficulty" element={<Fplay />} />
+          <Route path="/fresco/board" element={<Board />} />
+          <Route path="/fresco/about" element={<FrescoAbout />} />
+          <Route path="/fresco/:songId" element={<Diff />} />
+          <Route path="/fresco" element={<Fresco />} />
           <Route path="/announcements" element={<Announcements />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/giscus" element={<Giscus />} />
