@@ -142,10 +142,9 @@ export default function Fplay() {
   };
 
   // 按键处理
-  const processKeyPress = (e) => {
-    if (gameStateRef.current !== 'playing') return;
+    const processKeyPress = (e) => {
     const km = {}; LANE_KEYS.forEach((k, i) => km[k.toLowerCase()] = i);
-        const sk = {};
+    const sk = {};
     for (const [l, ks] of Object.entries(SLIDE_MAP)) {
       const laneNum = parseInt(l);
       ks.forEach(k => { sk[k.toLowerCase()] = laneNum; });
@@ -153,9 +152,17 @@ export default function Fplay() {
     const time = currentTimeRef.current + JUDGE_DELAY / 1000;
     const key = e.key.toLowerCase();
 
-    if (e.key === '-') { if (['playing','paused'].includes(gameStateRef.current)) togglePause(); return; }
-    if (e.key === '=') { if (gameStateRef.current === 'paused') { endGame(); navigate(`/fresco/${songId}`); } return; }
+    // 暂停/退出在任何状态都可用
+    if (e.key === '-') {
+      if (['playing', 'paused'].includes(gameStateRef.current)) togglePause();
+      return;
+    }
+    if (e.key === '=') {
+      if (gameStateRef.current === 'paused') { endGame(); navigate(`/fresco/${songId}`); }
+      return;
+    }
 
+    if (gameStateRef.current !== 'playing') return;
 // ==================== Slide 判定（最简化版）===================
   const isSlideKey = ['z','x','c','v','b','n','m',','].includes(key);
   
