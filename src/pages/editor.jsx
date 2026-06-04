@@ -15,7 +15,7 @@ const CANVAS_WIDTH = LANE_COUNT * LANE_WIDTH;
 const PIXELS_PER_BEAT = 160;
 const SUBDIVISIONS = 8;
 const JUDGE_LINE_BOTTOM_MARGIN = 400;
-const TOTAL_BEATS = 96;
+const TOTAL_BEATS = 360;
 const NOTE_WIDTH_SCALE = 0.8;
 
 const EMPTY_CHART = {
@@ -66,6 +66,10 @@ export default function Editor() {
   const [chartIdInput, setChartIdInput] = useState('');
   const [audioUrl, setAudioUrl] = useState(null);
   const [hitSoundUrl, setHitSoundUrl] = useState(null);
+  const [selectMode, setSelectMode] = useState(false); // 区间选择模式
+const [selectStart, setSelectStart] = useState(null); // { bar, beat, sub }
+const [selectEnd, setSelectEnd] = useState(null);
+const [clipboard, setClipboard] = useState([]); // 复制的音符
 
   const pushHistory = useCallback((nc) => {
     setHistory(prev => {
@@ -86,6 +90,10 @@ export default function Editor() {
   const playStartRef = useRef(0);
   const playTimeRef = useRef(0);
   const rafRef = useRef(null);
+  const dragNoteRef = useRef(null);
+  const dragStartYRef = useRef(0);
+  const hasDraggedRef = useRef(false);
+  const mousePosRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     let c = false;
@@ -157,6 +165,7 @@ export default function Editor() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
       if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redo(); }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Z') { e.preventDefault(); redo(); }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); pasteAtMouse(); return; }
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNoteId && document.activeElement?.tagName !== 'INPUT') deleteNote(selectedNoteId);
     };
     window.addEventListener('keydown', h);
@@ -242,13 +251,19 @@ export default function Editor() {
     const ctx = canvas.getContext('2d');
     const bpm = chart.meta.bpm;
     const w = CANVAS_WIDTH, h = totalHeight;
-    canvas.width = w; canvas.height = h;
+    
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
 
+    // 全画布背景
     ctx.fillStyle = '#0a0a16'; ctx.fillRect(0, 0, w, h);
+    
+    // 轨道交替背景
     for (let i = 0; i < LANE_COUNT; i++) {
       ctx.fillStyle = i % 2 === 0 ? '#0d0d1f' : '#0a0a18';
       ctx.fillRect(i * LANE_WIDTH, 0, LANE_WIDTH, h);
     }
+    // 下滑轨道
     for (let i = 1; i <= 7; i++) {
       ctx.fillStyle = 'rgba(100, 50, 180, 0.06)';
       ctx.fillRect(i * LANE_WIDTH, 0, LANE_WIDTH, h);
@@ -257,11 +272,11 @@ export default function Editor() {
     const jy = getJudgeY();
     const totalBars = Math.ceil(TOTAL_BEATS / 4);
 
+    // 完整网格
     for (let bar = 1; bar <= totalBars; bar++) {
       for (let beat = 1; beat <= 4; beat++) {
         for (let sub = 0; sub < SUBDIVISIONS; sub++) {
           const y = beatToY(bar, beat, sub);
-          if (y < -50 || y > h + 50) continue;
           const isBL = (beat === 1 && sub === 0);
           const isB = (sub === 0);
           const isH = (sub % 4 === 0);
@@ -280,77 +295,50 @@ export default function Editor() {
       }
     }
 
+    // 轨道分隔线
     ctx.strokeStyle = '#1e1e30'; ctx.lineWidth = 1;
     for (let i = 1; i < LANE_COUNT; i++) {
       ctx.beginPath(); ctx.moveTo(i * LANE_WIDTH, 0); ctx.lineTo(i * LANE_WIDTH, h); ctx.stroke();
     }
 
+    // 判定线
     ctx.strokeStyle = '#ff4466'; ctx.lineWidth = 2.5;
     ctx.shadowColor = '#ff4466'; ctx.shadowBlur = 12;
     ctx.beginPath(); ctx.moveTo(0, jy); ctx.lineTo(w, jy); ctx.stroke();
     ctx.shadowBlur = 0;
 
+    // 轨标
     ctx.fillStyle = '#666'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
     for (let i = 0; i < LANE_COUNT; i++) ctx.fillText(LANE_KEYS[i], i * LANE_WIDTH + LANE_WIDTH / 2, jy + 18);
     ctx.fillStyle = '#3a3050'; ctx.font = '9px monospace';
     for (let i = 1; i <= 7; i++) if (SLIDE_LABELS[i]) ctx.fillText(SLIDE_LABELS[i], i * LANE_WIDTH + LANE_WIDTH / 2, jy + 32);
 
+    // 判定线时间
     const cp = timeToBeatPos(currentTime, bpm);
     ctx.fillStyle = '#ff4466'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'left';
     ctx.fillText('▶ ' + currentTime.toFixed(2) + 's', 8, jy + 18);
     ctx.fillText('拍: ' + cp.bar + ':' + cp.beat + '/' + cp.sub, 8, jy + 36);
+    
+    // 绘制选区
+    if (selectStart && selectEnd) {
+      const y1 = beatToY(selectStart.bar, selectStart.beat, selectStart.sub);
+      const y2 = beatToY(selectEnd.bar, selectEnd.beat, selectEnd.sub);
+      const topY = Math.min(y1, y2), botY = Math.max(y1, y2);
+      ctx.fillStyle = 'rgba(255, 68, 102, 0.1)';
+      ctx.fillRect(0, topY, w, botY - topY);
+      ctx.strokeStyle = '#ff4466';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(0, topY, w, botY - topY);
+      ctx.setLineDash([]);
+    }
 
+    // 音符
     const noteH = 22;
-
-    // 先画所有 hold 长条（修复版）
     const drawnHolds = new Set();
 
     for (const note of chart.notes) {
-      if (!note.hold || drawnHolds.has(note.id)) continue;
-      drawnHolds.add(note.id);
-
-      const y1 = beatToY(note.bar, note.beat, note.sub);           // Hold 头
-      const y2 = beatToY(note.holdEndBar, note.holdEndBeat, note.holdEndSub); // Hold 尾
-
-      const topY = Math.min(y1, y2);      // 实际绘制起点（较小的y）
-      const barH = Math.abs(y2 - y1);     // 真实高度
-      if (barH <= 0) continue;
-
-      let fc = '#2a6099';
-      if (note.ex && note.slide) fc = '#cc8800';
-      else if (note.ex) fc = '#cc9900';
-      else if (note.slide) fc = '#553388';
-
-      const noteW = note.width * LANE_WIDTH * NOTE_WIDTH_SCALE;
-      const totalLaneW = note.width * LANE_WIDTH;
-      const offsetX = (totalLaneW - noteW) / 2;
-      const x = note.lane * LANE_WIDTH + offsetX;
-
-      const px = x + 2;
-      const py = topY + noteH / 2;        // 从较上面的位置开始绘制
-
-      const rr = parseInt(fc.slice(1, 3), 16);
-      const gg = parseInt(fc.slice(3, 5), 16);
-      const bb = parseInt(fc.slice(5, 7), 16);
-
-      const r = 8;   // 圆角半径
-
-      ctx.fillStyle = `rgba(${rr},${gg},${bb},0.35)`;
-      ctx.strokeStyle = `rgba(${rr},${gg},${bb},0.8)`;
-      ctx.lineWidth = 3;
-
-      ctx.beginPath();
-      ctx.roundRect(px, py, noteW - 4, barH, r);
-      ctx.fill();
-      ctx.stroke();
-      
-    }
-
-    // 再画音符头部
-    const drawnHeads = new Set();
-    for (const note of chart.notes) {
       const y = beatToY(note.bar, note.beat, note.sub);
-      if (y < -50 || y > h + 50) continue;
       const noteW = note.width * LANE_WIDTH * NOTE_WIDTH_SCALE;
       const totalLaneW = note.width * LANE_WIDTH;
       const offsetX = (totalLaneW - noteW) / 2;
@@ -358,6 +346,24 @@ export default function Editor() {
       const sel = note.id === selectedNoteId;
       const px = x, py = y - noteH / 2;
 
+      // hold 长条
+      if (note.hold && !drawnHolds.has(note.id)) {
+        drawnHolds.add(note.id);
+        const y2 = beatToY(note.holdEndBar, note.holdEndBeat, note.holdEndSub);
+        const topY = Math.min(y, y2), barH = Math.abs(y2 - y);
+        if (barH > 0) {
+          let fc = '#2a6099';
+          if (note.ex && note.slide) fc = '#cc8800';
+          else if (note.ex) fc = '#cc9900';
+          else if (note.slide) fc = '#553388';
+          const rr = parseInt(fc.slice(1,3),16), gg = parseInt(fc.slice(3,5),16), bb = parseInt(fc.slice(5,7),16);
+          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.35)`;
+          ctx.strokeStyle = `rgba(${rr},${gg},${bb},0.8)`; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.roundRect(px + 2, topY + noteH / 2, noteW - 4, barH, 8); ctx.fill(); ctx.stroke();
+        }
+      }
+
+      // 音符头
       let fc, sc, gc;
       if (note.ex && note.slide) { fc = '#cc8800'; sc = '#ffaa22'; gc = '#ffbb33'; }
       else if (note.ex) { fc = '#cc9900'; sc = '#eebb22'; gc = '#eebb22'; }
@@ -366,24 +372,14 @@ export default function Editor() {
 
       ctx.shadowColor = sel ? '#fff' : gc; ctx.shadowBlur = sel ? 14 : 6;
       ctx.fillStyle = fc; ctx.strokeStyle = sc; ctx.lineWidth = 1.5;
-      const r = 3;
-      ctx.beginPath();
-      ctx.moveTo(px + r, py); ctx.lineTo(px + noteW - r, py);
-      ctx.arcTo(px + noteW, py, px + noteW, py + r, r);
-      ctx.lineTo(px + noteW, py + noteH - r);
-      ctx.arcTo(px + noteW, py + noteH, px + noteW - r, py + noteH, r);
-      ctx.lineTo(px + r, py + noteH);
-      ctx.arcTo(px, py + noteH, px, py + noteH - r, r);
-      ctx.lineTo(px, py + r); ctx.arcTo(px, py, px + r, py, r);
-      ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.beginPath(); ctx.roundRect(px, py, noteW, noteH, 3); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
 
       if (note.slide) {
         const cx = px + noteW / 2, vTop = py - 10, vSize = 6;
         const vc = (note.ex && note.slide) ? '#ffdd66' : '#c8a0ff';
         ctx.shadowColor = vc; ctx.shadowBlur = 4;
         ctx.strokeStyle = vc; ctx.fillStyle = vc; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(cx - vSize, vTop); ctx.lineTo(cx, vTop + vSize); ctx.lineTo(cx + vSize, vTop); ctx.stroke();
-        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.moveTo(cx - vSize, vTop); ctx.lineTo(cx, vTop + vSize); ctx.lineTo(cx + vSize, vTop); ctx.stroke(); ctx.shadowBlur = 0;
       }
 
       if (note.width >= 5) {
@@ -395,9 +391,102 @@ export default function Editor() {
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
         ctx.strokeRect(px - 2, py - 4, noteW + 4, noteH + 8); ctx.setLineDash([]);
       }
+
+            if (sel && dragNoteRef.current?.id === note.id) {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(px - 2, py - 4, noteW + 4, noteH + 8);
+      }
     }
   }, [chart, selectedNoteId, currentTime, totalHeight, beatToY, getJudgeY]);
+    const copySelection = () => {
+    if (!selectStart || !selectEnd) return;
+    const startTime = beatPosToTime(selectStart.bar, selectStart.beat, selectStart.sub, chart.meta.bpm);
+    const endTime = beatPosToTime(selectEnd.bar, selectEnd.beat, selectEnd.sub, chart.meta.bpm);
+    const minT = Math.min(startTime, endTime);
+    const maxT = Math.max(startTime, endTime);
+    
+    const selected = chart.notes.filter(n => {
+      const t = beatPosToTime(n.bar, n.beat, n.sub, chart.meta.bpm);
+      return t >= minT && t <= maxT;
+    });
+    setClipboard(selected.map(n => ({ ...n })));
+    setSelectMode(false);
+    setSelectStart(null);
+    setSelectEnd(null);
+    setSaveStatus(`已复制 ${selected.length} 个音符`);
+  };
 
+    const pasteAtMouse = () => {
+    if (clipboard.length === 0) return;
+    const { y } = mousePosRef.current;
+    const bp = yToBeat(y);
+    const refTime = beatPosToTime(bp.bar, bp.beat, bp.sub, chart.meta.bpm);
+    const firstTime = beatPosToTime(clipboard[0].bar, clipboard[0].beat, clipboard[0].sub, chart.meta.bpm);
+    const offset = refTime - firstTime;
+    
+    const pasted = clipboard.map(n => {
+      const nt = beatPosToTime(n.bar, n.beat, n.sub, chart.meta.bpm) + offset;
+      const np = timeToBeatPos(Math.max(0, nt), chart.meta.bpm);
+      const newNote = {
+        ...n,
+        id: genId(),
+        bar: np.bar,
+        beat: np.beat,
+        sub: np.sub,
+      };
+      if (n.hold && n.holdEndBar) {
+        const et = beatPosToTime(n.holdEndBar, n.holdEndBeat, n.holdEndSub, chart.meta.bpm) + offset;
+        const ep = timeToBeatPos(Math.max(0, et), chart.meta.bpm);
+        newNote.holdEndBar = ep.bar;
+        newNote.holdEndBeat = ep.beat;
+        newNote.holdEndSub = ep.sub;
+      }
+      return newNote;
+    });
+    
+    updateChart({ ...chart, notes: [...chart.notes, ...pasted].sort((a, b) => {
+      const ta = beatPosToTime(a.bar, a.beat, a.sub, chart.meta.bpm);
+      const tb = beatPosToTime(b.bar, b.beat, b.sub, chart.meta.bpm);
+      return ta - tb;
+    })});
+    setSaveStatus(`已粘贴 ${pasted.length} 个音符`);
+  };
+
+  const pasteAtJudge = () => {
+    if (clipboard.length === 0) return;
+    const cp = timeToBeatPos(currentTime, chart.meta.bpm);
+    const refTime = beatPosToTime(cp.bar, cp.beat, cp.sub, chart.meta.bpm);
+    const firstTime = beatPosToTime(clipboard[0].bar, clipboard[0].beat, clipboard[0].sub, chart.meta.bpm);
+    const offset = refTime - firstTime;
+    
+    const pasted = clipboard.map(n => {
+      const nt = beatPosToTime(n.bar, n.beat, n.sub, chart.meta.bpm) + offset;
+      const bp = timeToBeatPos(nt, chart.meta.bpm);
+      const newNote = {
+        ...n,
+        id: genId(),
+        bar: bp.bar,
+        beat: bp.beat,
+        sub: bp.sub,
+      };
+      if (n.hold && n.holdEndBar) {
+        const et = beatPosToTime(n.holdEndBar, n.holdEndBeat, n.holdEndSub, chart.meta.bpm) + offset;
+        const ebp = timeToBeatPos(et, chart.meta.bpm);
+        newNote.holdEndBar = ebp.bar;
+        newNote.holdEndBeat = ebp.beat;
+        newNote.holdEndSub = ebp.sub;
+      }
+      return newNote;
+    });
+    
+    updateChart({ ...chart, notes: [...chart.notes, ...pasted].sort((a, b) => {
+      const ta = beatPosToTime(a.bar, a.beat, a.sub, chart.meta.bpm);
+      const tb = beatPosToTime(b.bar, b.beat, b.sub, chart.meta.bpm);
+      return ta - tb;
+    })});
+    setSaveStatus(`已粘贴 ${pasted.length} 个音符`);
+  };
+  
   useEffect(() => { if (!loading && hasAccess) requestAnimationFrame(draw); }, [loading, hasAccess, draw]);
   useEffect(() => {
     if (!loading && hasAccess && scrollRef.current) {
@@ -418,14 +507,70 @@ export default function Editor() {
   };
 
   const handleClick = (e) => {
+    if (hasDraggedRef.current) { hasDraggedRef.current = false; return; }
     const { x, y } = getPos(e);
     const lane = Math.floor(x / LANE_WIDTH);
     if (lane < 0 || lane >= LANE_COUNT) return;
+    // 选区模式
+    if (selectMode) {
+      const bp = yToBeat(y);
+      if (!selectStart) {
+        setSelectStart(bp);
+      } else if (!selectEnd) {
+        setSelectEnd(bp);
+      }
+      return;
+    }
     const clicked = findNoteAt(x, y);
     if (clicked) { setSelectedNoteId(clicked.id); return; }
     const { bar, beat, sub } = yToBeat(y);
     addNoteAtBeat(bar, beat, sub, lane);
   };
+
+  const handleMouseDown = (e) => {
+    hasDraggedRef.current = false;
+    const { x, y } = getPos(e);
+    const clicked = findNoteAt(x, y);
+    if (clicked) {
+      setSelectedNoteId(clicked.id);
+      dragNoteRef.current = clicked;
+      dragStartYRef.current = y;
+    }
+  };
+
+  const handleMouseMove = (e) => {
+        const pos = getPos(e);
+    mousePosRef.current = pos;
+
+    if (!dragNoteRef.current) return;
+    const { y } = getPos(e);
+    const deltaY = y - dragStartYRef.current;
+    if (Math.abs(deltaY) < 10) return;
+    hasDraggedRef.current = true;
+    
+    const { bar, beat, sub } = yToBeat(y);
+    const note = dragNoteRef.current;
+    if (bar !== note.bar || beat !== note.beat || sub !== note.sub) {
+      const newNotes = chart.notes.map(n => 
+        n.id === note.id ? { ...n, bar, beat, sub } : n
+      ).sort((a, b) => {
+        const ta = beatPosToTime(a.bar, a.beat, a.sub, chart.meta.bpm);
+        const tb = beatPosToTime(b.bar, b.beat, b.sub, chart.meta.bpm);
+        return ta - tb;
+      });
+      updateChart({ ...chart, notes: newNotes });
+      dragNoteRef.current = newNotes.find(n => n.id === note.id);
+      dragStartYRef.current = y;
+    }
+  };
+
+    useEffect(() => {
+    const handleMouseUp = () => {
+      dragNoteRef.current = null;
+    };
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, []);
 
   const handleRightClick = (e) => { e.preventDefault(); const { x, y } = getPos(e); const c = findNoteAt(x, y); if (c) deleteNote(c.id); };
 
@@ -528,6 +673,18 @@ export default function Editor() {
           </div>
           <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>{toolSlide && toolEx ? 'ExSlide 金V' : toolSlide ? 'Slide 紫V' : toolEx ? 'Ex 黄' : toolHold ? 'Hold 蓝条' : '普通 蓝'}</div>
         </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+  <Btn onClick={() => { setSelectMode(!selectMode); setSelectStart(null); setSelectEnd(null); }}
+    style={{ background: selectMode ? '#ff4466' : '#1a1a30', borderColor: selectMode ? '#ff4466' : '#2a2a3e' }}>
+    {selectMode ? '取消选区' : '📋 选区'}
+  </Btn>
+  {selectStart && selectEnd && (
+    <>
+      <Btn onClick={copySelection}>📝 复制</Btn>
+      <Btn onClick={pasteAtJudge}>📌 粘贴到判定线</Btn>
+    </>
+  )}
+</div>
 
         <div style={{ background: '#12122a', borderRadius: 8, padding: 12 }}>
           <Lbl>播放</Lbl>
@@ -583,7 +740,14 @@ export default function Editor() {
       </div>
 
       <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', background: '#060610' }}>
-        <canvas ref={canvasRef} onClick={handleClick} onContextMenu={handleRightClick} style={{ display: 'block', cursor: 'crosshair', width: CANVAS_WIDTH }} />
+<canvas 
+  ref={canvasRef} 
+  onClick={handleClick} 
+  onContextMenu={handleRightClick}
+  onMouseDown={handleMouseDown}
+  onMouseMove={handleMouseMove}
+  style={{ display: 'block', cursor: 'crosshair', width: CANVAS_WIDTH }} 
+/>
       </div>
     </div>
   );
