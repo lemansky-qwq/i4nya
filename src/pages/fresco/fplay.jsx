@@ -34,11 +34,11 @@ const getRating = (s, c) => {
   const b = Math.round(c * 100);
   let d = 0;
   let remaining = s;
-  if (remaining >= 1005000) { d += Math.floor((remaining - 1000000) / 500); remaining = 1000000; }
-  if (remaining >= 1000000) { d += Math.floor((remaining - 970000) / 100); remaining = 970000; }
+  if (remaining >= 1005000) { d += Math.floor((remaining - 1005000) / 500); remaining = 1005000; }
+  if (remaining >= 1000000) { d += Math.floor((remaining - 1000000) / 100); remaining = 1000000; }
   if (remaining >= 970000) { d += Math.floor((remaining - 970000) / 250); remaining = 970000; }
-  if (remaining >= 950000 && remaining < 970000) { d -= Math.floor((970000 - remaining) / 200); return Math.max(0, b + d); }
-  if (remaining < 950000) { d -= Math.floor((950000 - remaining) / 100); }
+  if (remaining < 900000) { d -= Math.floor((900000 - remaining) / 100); remaining = 900000; }
+  if (remaining < 970000) { d -= Math.floor((970000 - remaining) / 200); }
   return Math.max(0, b + d);
 };
 

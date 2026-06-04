@@ -90,8 +90,8 @@ export default function FrescoAbout() {
           <div style={{ fontSize: 13, lineHeight: 2, background: '#0e0e1c', border: '1px solid #1e1e30', borderRadius: 10, padding: 16 }}>
             <div>定数 × 100 = <span style={{ color: '#ffaa00' }}>基础 Rating</span></div>
             <div style={{ marginTop: 8 }}>
-              <div>0 ~ 949,999：每 100 分 <span style={{ color: '#ff4444' }}>-1</span></div>
-              <div>950,000 ~ 969,999：每 200 分 <span style={{ color: '#ff4444' }}>-1</span></div>
+              <div>0 ~ 899,999：每 100 分 <span style={{ color: '#ff4444' }}>-1</span></div>
+              <div>900,000 ~ 969,999：每 200 分 <span style={{ color: '#ff4444' }}>-1</span></div>
               <div>970,000：<span style={{ color: '#ffdd44' }}>= 基础 Rating</span></div>
               <div>970,000 ~ 999,999：每 250 分 <span style={{ color: '#44ff44' }}>+1</span></div>
               <div>1,000,000 ~ 1,004,999：每 100 分 <span style={{ color: '#44ff44' }}>+1</span></div>
