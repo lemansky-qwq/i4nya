@@ -466,9 +466,9 @@ export default function Fplay() {
         <div style={{fontSize:12,color:'#888'}}>{chart?.meta?.artist} | {difficulty} | 定数{chart?.meta?.constant||1.0}</div>
         {gameState==='ready'&&(<div style={{display:'flex',flexDirection:'column',gap:8}}>
           <div style={{fontSize:11,color:'#777'}}>流速: {speed.toFixed(1)}x</div>
-          <input type="range" min={0.5} max={3} step={0.1} value={speed} onChange={e=>{setSpeed(parseFloat(e.target.value));saveSettings();}}/>
+          <input type="range" min={0.5} max={5} step={0.1} value={speed} onChange={e=>{setSpeed(parseFloat(e.target.value));saveSettings();}}/>
           <div style={{fontSize:11,color:'#777'}}>延迟: {audioDelay}ms</div>
-          <input type="range" min={-200} max={200} step={5} value={audioDelay} onChange={e=>{setAudioDelay(parseInt(e.target.value));saveSettings();}}/>
+          <input type="range" min={-2000} max={2000} step={5} value={audioDelay} onChange={e=>{setAudioDelay(parseInt(e.target.value));saveSettings();}}/>
           <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,cursor:'pointer',color:'#888'}}><input type="checkbox" checked={showDetail} onChange={e=>{setShowDetail(e.target.checked);saveSettings();}}/>显示 Hold/Slide</label>
           <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,cursor:'pointer',color:'#888'}}><input type="checkbox" checked={showFastLate} onChange={e=>{setShowFastLate(e.target.checked);saveSettings();}}/>显示 FAST/LATE</label>
           <button onClick={startGame} style={{padding:'12px 24px',fontSize:16,background:'#ff4466',border:'none',borderRadius:6,color:'#fff',cursor:'pointer'}}>▶ 开始游戏</button>
